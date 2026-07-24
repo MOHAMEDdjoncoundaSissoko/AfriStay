@@ -6,6 +6,7 @@
     "dev": "nest start --watch --preserveWatchOutput",
     "build": "nest build",
     "start": "node dist/main",
+    "seed": "ts-node prisma/seed.ts",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "test": "jest"

@@ -1,0 +1,523 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ÉNUMÉRATIONS
+// ============================================================
+
+enum UserRole {
+  ADMIN
+  HOST
+  TRAVELER
+}
+
+enum PropertyStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentMethod {
+  STRIPE
+  ORANGE_MONEY
+  WAVE
+  MTN_MOMO
+  MOOV_MONEY
+  VISA
+  MASTERCARD
+  PAYPAL
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum NotificationType {
+  BOOKING_REQUEST
+  BOOKING_CONFIRMED
+  BOOKING_REJECTED
+  BOOKING_CANCELLED
+  PAYMENT_RECEIVED
+  PAYMENT_FAILED
+  NEW_MESSAGE
+  NEW_REVIEW
+  REVIEW_REPLY
+  HOST_VERIFICATION
+  PROMOTION
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum CancellationPolicy {
+  FLEXIBLE
+  MODERATE
+  STRICT
+}
+
+enum ContentType {
+  TEXT
+  IMAGE
+}
+
+// ============================================================
+// PAYS & VILLES
+// ============================================================
+
+model Country {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique // ISO 3166-1 alpha-2 : CI, SN, NG...
+  flagEmoji   String   @map("flag_emoji")
+  phonePrefix String   @map("phone_prefix") // +225, +221, +234...
+  currency    String   @default("XOF")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  cities     City[]
+  properties Property[]
+
+  @@map("countries")
+}
+
+model City {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  countryId String   @map("country_id")
+  latitude  Float
+  longitude Float
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  country    Country    @relation(fields: [countryId], references: [id])
+  properties Property[]
+
+  @@index([countryId])
+  @@index([slug])
+  @@map("cities")
+}
+
+// ============================================================
+// TYPES DE LOGEMENT & ÉQUIPEMENTS (tables de référence)
+// ============================================================
+
+model PropertyType {
+  id          String  @id @default(cuid())
+  name        String  @unique // Villa, Appartement, Studio...
+  slug        String  @unique
+  description String?
+  icon        String? // nom d'icône FontAwesome
+  isActive    Boolean @default(true) @map("is_active")
+
+  properties  Property[]
+  commissions Commission[]
+
+  @@map("property_types")
+}
+
+model Amenity {
+  id       String  @id @default(cuid())
+  name     String  @unique // Wifi, Climatisation, Piscine...
+  slug     String  @unique
+  icon     String  // nom d'icône FontAwesome
+  category String // comfort, security, kitchen, outdoor...
+
+  properties PropertyAmenity[]
+
+  @@map("amenities")
+}
+
+// ============================================================
+// UTILISATEURS
+// ============================================================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  phone             String?   @unique
+  passwordHash      String    @map("password_hash")
+  firstName         String    @map("first_name")
+  lastName          String    @map("last_name")
+  avatarUrl         String?   @map("avatar_url")
+  roles             UserRole[]
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  phoneVerified     Boolean   @default(false) @map("phone_verified")
+  oauthProvider     String?   @map("oauth_provider") // google, facebook
+  oauthProviderId   String?   @map("oauth_provider_id")
+  isActive          Boolean   @default(true) @map("is_active")
+  deletedAt         DateTime? @map("deleted_at") // soft delete
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations voyageur
+  bookings          Booking[]
+  favorites         Favorite[]
+  sentMessages      Message[]          @relation("SentMessages")
+  reviews           Review[]           @relation("WrittenReviews")
+  conversations     ConversationParticipant[]
+
+  // Relations hôte
+  properties        Property[]
+
+  hostReplies       Review[]           @relation("HostReplies")
+
+  // Relations admin
+  adminLogs         AdminLog[]
+
+  // Notifications
+  notifications     Notification[]
+
+  @@index([roles], map: "idx_user_roles")
+  @@index([isActive])
+  @@map("users")
+}
+
+// ============================================================
+// LOGEMENTS
+// ============================================================
+
+model Property {
+  id                  String           @id @default(cuid())
+  hostId              String           @map("host_id")
+  title               String
+  slug                String           @unique
+  description         String           @db.Text
+  propertyTypeId      String           @map("property_type_id")
+  countryId           String           @map("country_id")
+  cityId              String           @map("city_id")
+  address             String
+  latitude            Float
+  longitude           Float
+  pricePerNight       Int              @map("price_per_night") // en FCFA (int pour éviter les erreurs flottantes)
+  pricePerWeek        Int?             @map("price_per_week")
+  pricePerMonth       Int?             @map("price_per_month")
+  currency            String           @default("XOF")
+  bedrooms            Int
+  beds                Int
+  bathrooms           Int
+  areaSqm             Int              @map("area_sqm")
+  maxGuests           Int              @map("max_guests")
+  petsAllowed         Boolean          @default(false) @map("pets_allowed")
+  smokingAllowed      Boolean          @default(false) @map("smoking_allowed")
+  videoUrl            String?          @map("video_url")
+  checkInTime         String           @default("14:00") @map("check_in_time")
+  checkOutTime        String           @default("11:00") @map("check_out_time")
+  cancellationPolicy  CancellationPolicy @default(MODERATE) @map("cancellation_policy")
+  minStayNights       Int              @default(1) @map("min_stay_nights")
+  maxStayNights       Int?             @map("max_stay_nights")
+  status              PropertyStatus   @default(DRAFT)
+  ratingAverage       Float            @default(0) @map("rating_average")
+  reviewCount         Int              @default(0) @map("review_count")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  host               User              @relation(fields: [hostId], references: [id])
+  propertyType       PropertyType      @relation(fields: [propertyTypeId], references: [id])
+  country            Country           @relation(fields: [countryId], references: [id])
+  city               City              @relation(fields: [cityId], references: [id])
+  images             PropertyImage[]
+  amenities          PropertyAmenity[]
+  availability       PropertyAvailability[]
+  bookings           Booking[]
+  reviews            Review[]
+  conversations      Conversation[]
+  favorites          Favorite[]
+
+  @@index([hostId])
+  @@index([cityId])
+  @@index([status])
+  @@index([pricePerNight])
+  @@index([ratingAverage])
+  @@index([latitude, longitude])
+  @@map("properties")
+}
+
+model PropertyImage {
+  id        String   @id @default(cuid())
+  propertyId String   @map("property_id")
+  url       String
+  publicId  String   @map("public_id") // ID Cloudinary pour suppression
+  width     Int?
+  height    Int?
+  isCover   Boolean  @default(false) @map("is_cover")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_images")
+}
+
+model PropertyAmenity {
+  propertyId String @map("property_id")
+  amenityId  String @map("amenity_id")
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenity  Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+
+  @@id([propertyId, amenityId])
+  @@map("property_amenities")
+}
+
+model PropertyAvailability {
+  id        String  @id @default(cuid())
+  propertyId String  @map("property_id")
+  date      DateTime @db.Date
+  status    String  @default("AVAILABLE") // AVAILABLE, BLOCKED, BOOKED
+  bookingId String? @map("booking_id") // renseigné quand status = BOOKED
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  booking  Booking? @relation(fields: [bookingId], references: [id])
+
+  @@unique([propertyId, date])
+  @@index([propertyId, date])
+  @@map("property_availability")
+}
+
+// ============================================================
+// RÉSERVATIONS
+// ============================================================
+
+model Booking {
+  id                String        @id @default(cuid())
+  bookingNumber     String        @unique @map("booking_number")
+  travelerId        String        @map("traveler_id")
+  propertyId        String        @map("property_id")
+  checkInDate       DateTime      @map("check_in_date") @db.Date
+  checkOutDate      DateTime      @map("check_out_date") @db.Date
+  numberOfNights    Int           @map("number_of_nights")
+  numberOfGuests    Int           @map("number_of_guests")
+  totalAmount       Int           @map("total_amount") // prix total logement
+  serviceFee        Int           @map("service_fee") // frais de service voyageur
+  commissionAmount  Int           @map("commission_amount") // commission plateforme
+  hostPayout        Int           @map("host_payout") // ce que recoit l'hote
+  currency          String        @default("XOF")
+  status            BookingStatus @default(PENDING)
+  specialRequests   String?       @map("special_requests") @db.Text
+  cancellationReason String?      @map("cancellation_reason") @db.Text
+  cancelledAt       DateTime?     @map("cancelled_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  traveler     User                  @relation(fields: [travelerId], references: [id])
+  property     Property              @relation(fields: [propertyId], references: [id])
+
+  payments     Payment[]
+  review       Review?
+  availability PropertyAvailability[]
+
+  @@index([travelerId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([checkInDate])
+  @@map("bookings")
+}
+
+// ============================================================
+// PAIEMENTS
+// ============================================================
+
+model Payment {
+  id           String        @id @default(cuid())
+  bookingId    String        @map("booking_id")
+  amount       Int
+  currency     String        @default("XOF")
+  method       PaymentMethod
+  status       PaymentStatus @default(PENDING)
+  externalId   String?       @map("external_id") // ID transaction du fournisseur
+  metadata     Json?         // donnees specifiques au fournisseur
+  paidAt       DateTime?     @map("paid_at")
+  failedAt     DateTime?     @map("failed_at")
+  refundedAt   DateTime?     @map("refunded_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([externalId])
+  @@map("payments")
+}
+
+// ============================================================
+// AVIS
+// ============================================================
+
+model Review {
+  id           String   @id @default(cuid())
+  bookingId    String   @unique @map("booking_id")
+  propertyId   String   @map("property_id")
+  reviewerId   String   @map("reviewer_id") // le voyageur
+  revieweeId   String   @map("reviewee_id") // l'hote
+  rating       Int      // 1 à 5
+  title        String?
+  comment      String   @db.Text
+  photos       Json?    // tableau d'URLs
+  hostReply    String?  @map("host_reply") @db.Text
+  hostRepliedAt DateTime? @map("host_replied_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  booking  Booking  @relation(fields: [bookingId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  reviewer User     @relation("WrittenReviews", fields: [reviewerId], references: [id])
+  reviewee User     @relation("HostReplies", fields: [revieweeId], references: [id])
+
+  @@index([propertyId])
+  @@index([reviewerId])
+  @@map("reviews")
+}
+
+// ============================================================
+// MESSAGERIE
+// ============================================================
+
+model Conversation {
+  id              String     @id @default(cuid())
+  propertyId      String?    @map("property_id") // nullable = conversation generale
+  lastMessageAt   DateTime?  @map("last_message_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  property      Property?                @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@index([propertyId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  conversationId String    @map("conversation_id")
+  userId        String    @map("user_id")
+  lastReadAt    DateTime? @map("last_read_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String      @map("conversation_id")
+  senderId       String      @map("sender_id")
+  content        String      @db.Text
+  contentType    ContentType @default(TEXT) @map("content_type")
+  isRead         Boolean     @default(false) @map("is_read")
+  readAt         DateTime?   @map("read_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("messages")
+}
+
+// ============================================================
+// FAVORIS
+// ============================================================
+
+model Favorite {
+  userId     String   @map("user_id")
+  propertyId String   @map("property_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@id([userId, propertyId])
+  @@map("favorites")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String            @map("user_id")
+  type      NotificationType
+  title     String
+  message   String            @db.Text
+  channel   NotificationChannel @default(IN_APP)
+  data      Json?             // donnees supplementaires (propertyId, bookingId...)
+  isRead    Boolean           @default(false) @map("is_read")
+  readAt    DateTime?         @map("read_at")
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([type])
+  @@map("notifications")
+}
+
+// ============================================================
+// COMMISSIONS
+// ============================================================
+
+model Commission {
+  id             String  @id @default(cuid())
+  propertyTypeId String? @map("property_type_id") // null = commission globale
+  percentage     Float   // ex: 10.00 pour 10%
+  fixedAmount    Int?    @map("fixed_amount") // montant fixe optionnel en FCFA
+  isActive       Boolean @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  propertyType PropertyType? @relation(fields: [propertyTypeId], references: [id])
+
+  @@map("commissions")
+}
+
+// ============================================================
+// LOGS ADMINISTRATION
+// ============================================================
+
+model AdminLog {
+  id         String   @id @default(cuid())
+  adminId    String   @map("admin_id")
+  action     String   // DELETE_PROPERTY, BAN_USER, UPDATE_COMMISSION...
+  entityType String   @map("entity_type") // User, Property, Booking...
+  entityId   String?  @map("entity_id")
+  details    Json?    // details de l'action
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  admin User @relation(fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@map("admin_logs")
+}
