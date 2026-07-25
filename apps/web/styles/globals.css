@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Playfair+Display:wght@500;600;700;800&display=swap');
+
+:root {
+  --bg: #FAF7F2;
+  --card: #FFFFFF;
+  --text: #1F1F1F;
+  --text-sec: #6B6B6B;
+  --border: #E8E2D9;
+}
+
+.dark {
+  --bg: #0F0F0F;
+  --card: #1E1E1E;
+  --text: #F5F0EB;
+  --text-sec: #A0A0A0;
+  --border: #2E2E2E;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+::selection {
+  background: #D4522A;
+  color: #fff;
+}
