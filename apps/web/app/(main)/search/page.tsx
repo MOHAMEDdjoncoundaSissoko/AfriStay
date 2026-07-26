@@ -77,14 +77,20 @@ export default function SearchPage() {
       if (f?.amenities?.length) f.amenities.forEach((a) => params.append('amenities', a));
       params.set('limit', '30');
 
-      const [propsData, mapData] = await Promise.all([
-        apiRequest<SearchResponse>(`/api/properties?${params.toString()}`),
-        apiRequest<MapMarker[]>(`/api/properties/map?${params.toString()}`),
-      ]);
-
+      // Liste des propriétés
+      const propsData = await apiRequest<SearchResponse>(`/api/properties?${params.toString()}`);
       setProperties(propsData.properties);
       setTotal(propsData.pagination.total);
-      setMapMarkers(mapData);
+
+      // Carte : SÉPARÉ du try/catch principal + sans "limit"
+      try {
+        const mapParams = new URLSearchParams(params.toString());
+        mapParams.delete('limit'); // ← MapQueryDto n'a pas "limit"
+        const mapData = await apiRequest<MapMarker[]>(`/api/properties/map?${mapParams.toString()}`);
+        setMapMarkers(mapData);
+      } catch {
+        setMapMarkers([]);
+      }
     } catch {
       setProperties([]);
       setMapMarkers([]);
@@ -105,6 +111,9 @@ export default function SearchPage() {
   function filterByCity(city: string) {
     setSearch(city);
     setActiveCity(city);
+    if (!city) {
+      setFilters({ minPrice: '', maxPrice: '', minBedrooms: '', amenities: [] });
+    }
   }
 
   function handleMarkerClick(id: string) {

@@ -211,4 +211,39 @@ export class PropertiesService {
       orderBy: { date: 'asc' },
     });
   }
+
+    async findMapMarkers(query: PropertyQueryDto) {
+    const where: any = { status: 'PUBLISHED' };
+
+    if (query.city) {
+      where.OR = [
+        { city: { name: { equals: query.city, mode: 'insensitive' } } },
+        { city: { slug: { equals: query.city.toLowerCase(), mode: 'insensitive' } } },
+      ];
+    }
+
+    if (query.minPrice) {
+      where.pricePerNight = { ...where.pricePerNight, gte: Number(query.minPrice) };
+    }
+    if (query.maxPrice) {
+      where.pricePerNight = { ...where.pricePerNight, lte: Number(query.maxPrice) };
+    }
+    if (query.minBedrooms) {
+      where.bedrooms = { gte: Number(query.minBedrooms) };
+    }
+
+    return this.prisma.property.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        pricePerNight: true,
+        latitude: true,
+        longitude: true,
+        city: {
+          select: { name: true },
+        },
+      },
+    });
+  }
 }

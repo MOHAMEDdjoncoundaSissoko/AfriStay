@@ -30,3 +30,21 @@ body {
   background: #D4522A;
   color: #fff;
 }
+
+/* ============================== */
+/* CALENDRIER                       */
+/* ============================== */
+.calendar { margin: 8px 0; }
+.cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.cal-header h4 { font-size:15px; font-weight:600; margin:0; color:var(--text); }
+.cal-nav { width:32px; height:32px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; font-size:12px; }
+.cal-nav:hover { background:var(--bg-alt); border-color:var(--text-sec); }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; text-align:center; }
+.cal-day-name { font-size:11px; font-weight:600; color:var(--text-ter); padding:6px 0; }
+.cal-day { padding:7px 4px; font-size:13px; border-radius:8px; cursor:pointer; transition:all 0.15s; border:1px solid transparent; color:var(--text); }
+.cal-day:hover:not(.disabled):not(.empty) { background:var(--bg-alt); }
+.cal-day.disabled { color:var(--text-ter); text-decoration:line-through; cursor:default; opacity:0.5; }
+.cal-day.empty { cursor:default; }
+.cal-day.in-range { background:var(--primary-light); }
+.cal-day.range-start, .cal-day.range-end { background:var(--primary); color:#fff; font-weight:700; }
+.cal-day.today { border-color:var(--primary); }

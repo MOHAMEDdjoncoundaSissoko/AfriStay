@@ -7,6 +7,7 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { apiRequest } from '@/lib/api/client';
 import { formatPrice } from '@/lib/utils/format-price';
+import { BookingCalendar } from '@/components/booking/booking-calendar';
 
 interface Property {
   id: string;
@@ -44,14 +45,30 @@ export default function PropertyPage() {
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [checkIn, setCheckIn] = useState<Date | null>(null);
+  const [checkOut, setCheckOut] = useState<Date | null>(null);
+  const [unavailableDates, setUnavailableDates] = useState<
+    { date: string; status: string }[]
+  >([]);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState('');
+  const [bookingSuccess, setBookingSuccess] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    setLoading(true);
+
+    // 1. Charger les données du logement
     apiRequest<Property>(`/api/properties/${id}`)
-      .then(setProperty)
-      .catch(() => setError('Logement non trouvé'))
+      .then((data) => setProperty(data))
+      .catch((err) => setError(err?.message || 'Erreur lors du chargement'))
       .finally(() => setLoading(false));
+
+    // 2. Charger les dates indisponibles
+    const m = String(new Date().getMonth() + 1).padStart(2, '0');
+    const y = String(new Date().getFullYear());
+    apiRequest<{ date: string; status: string }[]>(`/api/properties/${id}/availability?month=${m}&year=${y}`)
+      .then(setUnavailableDates)
+      .catch(() => {});
   }, [id]);
 
   if (loading) {
@@ -92,6 +109,13 @@ export default function PropertyPage() {
       </>
     );
   }
+
+  // Calculs pour le récapitulatif des prix
+  const nights = checkIn && checkOut 
+    ? Math.ceil((checkOut.getTime() - checkIn.getTime()) / 86400000) 
+    : 0;
+  const nightsTotal = property ? property.pricePerNight * nights : 0;
+  const serviceFee = Math.round(nightsTotal * 0.08);
 
   const imgUrl = (seed: string) => `https://picsum.photos/seed/${seed}/800/600`;
   const imageSeeds = [property.id, property.id + 'b', property.id + 'c', property.id + 'd', property.id + 'e'];
@@ -207,56 +231,122 @@ export default function PropertyPage() {
             {/* Colonne droite - Carte réservation */}
             <div>
               <div className="sticky top-[84px] bg-white border border-[var(--border)] rounded-2xl p-6 shadow-sm">
-                <div className="flex justify-between items-center mb-5">
+                <div className="flex justify-between items-center mb-4">
                   <div>
                     <span className="text-2xl font-extrabold">{formatPrice(property.pricePerNight)}</span>
                     <span className="text-sm text-[var(--text-sec)] font-normal"> / nuit</span>
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-5">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5">Arrivée</label>
-                    <input type="date" className="w-full px-4 py-3 border border-[var(--border)] rounded-xl outline-none focus:border-primary text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5">Départ</label>
-                    <input type="date" className="w-full px-4 py-3 border border-[var(--border)] rounded-xl outline-none focus:border-primary text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5">Voyageurs</label>
-                    <select className="w-full px-4 py-3 border border-[var(--border)] rounded-xl outline-none focus:border-primary text-sm bg-white">
-                      {Array.from({ length: property.maxGuests }, (_, i) => (
-                        <option key={i + 1} value={i + 1}>{i + 1} voyageur{i > 0 ? 's' : ''}</option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Calendrier */}
+                <div className="mb-4">
+                  <BookingCalendar
+                    propertyId={property.id}
+                    unavailableDates={unavailableDates}
+                    checkIn={checkIn}
+                    checkOut={checkOut}
+                    onDateSelect={(date) => {
+                      if (!checkIn || (checkIn && checkOut)) {
+                        setCheckIn(date);
+                        setCheckOut(null);
+                      } else if (date > checkIn) {
+                        setCheckOut(date);
+                      } else {
+                        setCheckIn(date);
+                      }
+                    }}
+                  />
+                  {checkIn && !checkOut && (
+                    <p className="text-xs text-[var(--text-sec)] mt-2 text-center">Sélectionnez votre date de départ</p>
+                  )}
                 </div>
 
-                <Link
-                  href="/login"
-                  className="block w-full py-3.5 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors text-center text-[15px]"
-                >
-                  Réserver
-                </Link>
-
-                <hr className="my-5 border-[var(--border)]" />
-
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-sec)]">{formatPrice(property.pricePerNight)} x 5 nuits</span>
-                    <span className="font-medium">{formatPrice(property.pricePerNight * 5)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-sec)]">Frais de service</span>
-                    <span className="font-medium">{formatPrice(Math.round(property.pricePerNight * 5 * 0.08))}</span>
-                  </div>
-                  <hr className="border-[var(--border)]" />
-                  <div className="flex justify-between font-bold text-base">
-                    <span>Total</span>
-                    <span>{formatPrice(property.pricePerNight * 5 + Math.round(property.pricePerNight * 5 * 0.08))}</span>
-                  </div>
+                {/* Voyageurs */}
+                <div className="mb-4">
+                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5">Voyageurs</label>
+                  <select className="w-full px-4 py-3 border border-[var(--border)] rounded-xl outline-none focus:border-primary text-sm bg-white">
+                    {Array.from({ length: property.maxGuests }, (_, i) => (
+                      <option key={i + 1} value={i + 1}>{i + 1} voyageur{i > 0 ? 's' : ''}</option>
+                    ))}
+                  </select>
                 </div>
+
+                {/* Récapitulatif prix */}
+                {checkIn && checkOut && (
+                  <div className="space-y-3 text-sm mb-4">
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-sec)]">{formatPrice(property.pricePerNight)} x {Math.ceil((checkOut.getTime() - checkIn.getTime()) / 86400000)} nuits</span>
+                      <span className="font-medium">{formatPrice(property.pricePerNight * Math.ceil((checkOut.getTime() - checkIn.getTime()) / 86400000))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[var(--text-sec)]">Frais de service (8%)</span>
+                      <span className="font-medium">{formatPrice(Math.round(property.pricePerNight * Math.ceil((checkOut.getTime() - checkIn.getTime()) / 86400000) * 0.08))}</span>
+                    </div>
+                    <hr className="border-[var(--border)]" />
+                    <div className="flex justify-between font-bold text-base">
+                      <span>Total</span>
+                      <span className="text-primary">
+                        {formatPrice(nightsTotal + serviceFee)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {!checkIn || !checkOut ? (
+                  <p className="text-sm text-[var(--text-sec)] text-center py-3 border border-[var(--border)] rounded-xl">
+                    Sélectionnez vos dates pour voir le prix
+                  </p>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      setBookingLoading(true);
+                      setBookingError('');
+                      const token = localStorage.getItem('afristay_token');
+                      if (!token) {
+                        setBookingError('Connectez-vous pour réserver');
+                        setBookingLoading(false);
+                        return;
+                      }
+                      try {
+                        const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / 86400000);
+                        const result = await apiRequest<any>('/api/bookings', {
+                          method: 'POST',
+                          token,
+                          body: {
+                            propertyId: property.id,
+                            checkInDate: checkIn.toISOString().split('T')[0],
+                            checkOutDate: checkOut.toISOString().split('T')[0],
+                            numberOfGuests: 1,
+                          },
+                        });
+                        await apiRequest(`/api/bookings/${result.booking.id}/confirm-payment`, { method: 'PATCH', token });
+                        setBookingSuccess(true);
+                      } catch (err: unknown) {
+                        setBookingError(err instanceof Error ? err.message : 'Erreur lors de la réservation');
+                      } finally {
+                        setBookingLoading(false);
+                      }
+                    }}
+                    disabled={bookingLoading}
+                    className="w-full py-3.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors text-[15px]"
+                  >
+                    {bookingLoading ? 'Réservation...' : 'Réserver'}
+                  </button>
+                )}
+
+                {bookingError && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                    {bookingError}
+                  </div>
+                )}
+
+                {bookingSuccess && (
+                  <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-xl text-center">
+                    <i className="fa-solid fa-circle-check text-green-600 text-2xl mb-2 block" />
+                    <p className="font-semibold text-green-800">Réservation confirmée !</p>
+                    <p className="text-sm text-green-600 mt-1">Un email de confirmation vous a été envoyé.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
