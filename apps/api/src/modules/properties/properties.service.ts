@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { PropertyQueryDto } from './dto/property-query.dto';
+import { MapQueryDto } from './dto/map-query.dto';
 
 @Injectable()
 export class PropertiesService {
@@ -67,42 +68,7 @@ export class PropertiesService {
   }
 
   async findAll(query: PropertyQueryDto) {
-    const where: any = { status: 'PUBLISHED' };
-
-    if (query.city) {
-      const city = await this.prisma.city.findUnique({ where: { slug: query.city } });
-      if (city) where.cityId = city.id;
-    }
-
-    if (query.country) {
-      where.countryId = query.country;
-    }
-
-    if (query.search) {
-      where.OR = [
-        { title: { contains: query.search, mode: 'insensitive' } },
-        { description: { contains: query.search, mode: 'insensitive' } },
-        { address: { contains: query.search, mode: 'insensitive' } },
-      ];
-    }
-
-    if (query.minPrice !== undefined) {
-      where.pricePerNight = { ...(where.pricePerNight || {}), gte: query.minPrice };
-    }
-    if (query.maxPrice !== undefined) {
-      where.pricePerNight = { ...(where.pricePerNight || {}), lte: query.maxPrice };
-    }
-    if (query.minBedrooms) {
-      where.bedrooms = { gte: query.minBedrooms };
-    }
-    if (query.amenities?.length) {
-      where.amenities = {
-        some: {
-          amenity: { slug: { in: query.amenities } },
-        },
-      };
-    }
-
+    const where = await this.buildWhere(query);
     const page = query.page || 1;
     const limit = query.limit || 12;
     const skip = (page - 1) * limit;
@@ -127,12 +93,7 @@ export class PropertiesService {
 
     return {
       properties,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
 
@@ -180,5 +141,66 @@ export class PropertiesService {
 
     await this.prisma.property.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  async findForMap(query: MapQueryDto) {
+    const where = await this.buildWhere(query);
+
+    return this.prisma.property.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        pricePerNight: true,
+        latitude: true,
+        longitude: true,
+        city: { select: { name: true } },
+        ratingAverage: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  private async buildWhere(query: any): Promise<any> {
+    const where: any = { status: 'PUBLISHED' };
+
+    if (query.city) {
+      const city = await this.prisma.city.findFirst({
+        where: { slug: query.city.toLowerCase() },
+      });
+      if (city) {
+        where.cityId = city.id;
+      }
+    }
+
+    if (query.country) {
+      where.countryId = query.country;
+    }
+
+    if (query.search) {
+      where.OR = [
+        { title: { contains: query.search, mode: 'insensitive' } },
+        { description: { contains: query.search, mode: 'insensitive' } },
+        { address: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    if (query.minPrice !== undefined && query.minPrice !== '') {
+      where.pricePerNight = { ...(where.pricePerNight || {}), gte: Number(query.minPrice) };
+    }
+    if (query.maxPrice !== undefined && query.maxPrice !== '') {
+      where.pricePerNight = { ...(where.pricePerNight || {}), lte: Number(query.maxPrice) };
+    }
+    if (query.minBedrooms) {
+      where.bedrooms = { gte: Number(query.minBedrooms) };
+    }
+    if (query.amenities?.length) {
+      where.amenities = {
+        some: { amenity: { slug: { in: query.amenities } } },
+      };
+    }
+
+    return where;
   }
 }

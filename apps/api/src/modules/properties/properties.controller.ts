@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PropertiesService } from './properties.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { PropertyQueryDto } from './dto/property-query.dto';
+import { MapQueryDto } from './dto/map-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Logements')
@@ -22,6 +23,12 @@ export class PropertiesController {
   @ApiOperation({ summary: 'Mes logements (hôte)' })
   findMine(@Request() req: any) {
     return this.propertiesService.findMine(req.user.id);
+  }
+
+  @Get('map')
+  @ApiOperation({ summary: 'Données légères pour la carte (id, prix, coordonnées)' })
+  findForMap(@Query() query: MapQueryDto) {
+    return this.propertiesService.findForMap(query);
   }
 
   @Get(':id')

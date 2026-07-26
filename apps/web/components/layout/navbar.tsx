@@ -1,9 +1,19 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export function Navbar() {
+  const [user, setUser] = useState<{ firstName: string } | null>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('afristay_user');
+    if (userStr) {
+      try { setUser(JSON.parse(userStr)); } catch {}
+    }
+  }, []);
+
   const token = typeof window !== 'undefined' ? localStorage.getItem('afristay_token') : null;
-  const userStr = typeof window !== 'undefined' ? localStorage.getItem('afristay_user') : null;
-  const user = userStr ? JSON.parse(userStr) : null;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-[var(--border)]">

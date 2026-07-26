@@ -18,13 +18,17 @@ interface Property {
   reviewCount: number;
 }
 
-export function PropertyCard({ property }: { property: Property }) {
+export function PropertyCard({ property, isActive }: { property: Property; isActive?: boolean }) {
   // Image de remplacement basée sur l'ID
   const imgUrl = `https://picsum.photos/seed/${property.id}/600/450`;
 
   return (
     <Link href={`/property/${property.id}`} className="group block">
-      <div className="bg-white border border-[var(--border)] rounded-2xl overflow-hidden shadow-sm group-hover:shadow-lg transition-all group-hover:-translate-y-1">
+    <div className={`bg-white border rounded-2xl overflow-hidden shadow-sm group-hover:shadow-lg transition-all group-hover:-translate-y-1 ${
+    isActive
+      ? 'ring-2 ring-primary ring-offset-2'
+      : 'border-[var(--border)]'
+  }`}>
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
           <img
