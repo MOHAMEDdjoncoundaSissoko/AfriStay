@@ -31,6 +31,21 @@ export class PropertiesController {
     return this.propertiesService.findForMap(query);
   }
 
+  @Get(':id/availability')
+  @ApiOperation({ summary: 'Disponibilités d\'un logement (calendrier)' })
+  async getAvailability(
+    @Param('id') id: string,
+    @Query('month') month: string,
+    @Query('year') year: string,
+  ) {
+    const m = parseInt(month) || new Date().getMonth() + 1;
+    const y = parseInt(year) || new Date().getFullYear();
+    const startDate = new Date(y, m - 1, 1);
+    const endDate = new Date(y, m, 0);
+
+    return this.propertiesService.getAvailability(id, startDate, endDate);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Détail d\'un logement' })
   findOne(@Param('id') id: string) {

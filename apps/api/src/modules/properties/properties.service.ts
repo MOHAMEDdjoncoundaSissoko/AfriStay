@@ -203,4 +203,12 @@ export class PropertiesService {
 
     return where;
   }
+
+  async getAvailability(propertyId: string, start: Date, end: Date) {
+    return this.prisma.propertyAvailability.findMany({
+      where: { propertyId, date: { gte: start, lte: end } },
+      select: { date: true, status: true },
+      orderBy: { date: 'asc' },
+    });
+  }
 }
