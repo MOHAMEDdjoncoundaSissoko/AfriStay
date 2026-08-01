@@ -165,13 +165,17 @@ export class BookingsService {
     return this.prisma.booking.findMany({
       where: { property: { hostId: userId } },
       include: {
+        traveler: {
+          select: { id: true, firstName: true, lastName: true, avatarUrl: true },
+        },
         property: {
-          include: {
-            city: true,
+          select: {
+            id: true,
+            title: true,
             images: { where: { isCover: true }, take: 1 },
           },
         },
-        traveler: { select: { id: true, firstName: true, lastName: true } },
+        payments: true,
       },
       orderBy: { createdAt: 'desc' },
     });
