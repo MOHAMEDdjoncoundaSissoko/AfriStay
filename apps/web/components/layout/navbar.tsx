@@ -40,12 +40,18 @@ export function Navbar() {
           </Link>
 
           {token && user ? (
+            <>
+            <Link href="/messages" className="relative p-2 text-[var(--text-sec)] hover:text-[var(--text)] transition-colors">
+              <i className="fa-regular fa-comment-dots text-xl" />
+            </Link>
+
             <div className="flex items-center gap-2 px-3 py-1.5 border border-[var(--border)] rounded-full">
               <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
                 {user.firstName[0]}
               </div>
               <span className="text-sm font-medium">{user.firstName}</span>
             </div>
+            </>
           ) : (
             <>
               <Link href="/login" className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">

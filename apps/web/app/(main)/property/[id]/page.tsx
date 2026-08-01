@@ -292,6 +292,27 @@ export default function PropertyPage() {
                   </div>
                 )}
 
+                {/* Bouton Contacter l'hôte */}
+                <button
+                  onClick={async () => {
+                    const token = localStorage.getItem('afristay_token');
+                    if (!token) { setBookingError('Connectez-vous pour envoyer un message'); return; }
+                    try {
+                      const result = await apiRequest<any>('/api/messages/conversations', {
+                        method: 'POST',
+                        token,
+                        body: { propertyId: property.id, message: `Bonjour, je suis intéressé par votre logement : ${property.title}` }
+                      });
+                      window.location.href = `/messages/${result.conversation.id}`;
+                    } catch (err: any) {
+                      setBookingError(err?.message || 'Erreur lors de l\'envoi');
+                    }
+                  }}
+                  className="w-full py-3.5 border-2 border-[var(--text)] text-[var(--text)] font-semibold rounded-xl transition-colors text-[15px] hover:bg-gray-50 mb-3"
+                >
+                  <i className="fa-regular fa-message mr-2" />Contacter l'hôte
+                </button>
+
                 {!checkIn || !checkOut ? (
                   <p className="text-sm text-[var(--text-sec)] text-center py-3 border border-[var(--border)] rounded-xl">
                     Sélectionnez vos dates pour voir le prix
