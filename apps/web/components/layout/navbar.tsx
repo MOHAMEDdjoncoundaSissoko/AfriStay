@@ -41,6 +41,13 @@ export function Navbar() {
 
           {token && user ? (
             <>
+              <Link href="/traveler/bookings" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 transition-colors">
+                Mes réservations
+              </Link>
+              <Link href="/host/dashboard" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 transition-colors">
+                Tableau de bord
+              </Link>
+
             <Link href="/messages" className="relative p-2 text-[var(--text-sec)] hover:text-[var(--text)] transition-colors">
               <i className="fa-regular fa-comment-dots text-xl" />
             </Link>

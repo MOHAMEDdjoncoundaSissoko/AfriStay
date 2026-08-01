@@ -146,11 +146,16 @@ export class BookingsService {
       where: { travelerId: userId },
       include: {
         property: {
-          include: {
-            city: true,
+          select: {
+            id: true,
+            title: true,
+            address: true,
+            city: { select: { name: true } },
+            country: { select: { name: true, flagEmoji: true } },
             images: { where: { isCover: true }, take: 1 },
           },
         },
+        payments: true,
       },
       orderBy: { createdAt: 'desc' },
     });
