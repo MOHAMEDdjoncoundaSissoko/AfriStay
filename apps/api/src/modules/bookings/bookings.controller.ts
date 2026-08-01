@@ -60,4 +60,20 @@ export class BookingsController {
   ) {
     return this.bookingsService.cancel(id, req.user.id, body.reason);
   }
+
+  @Patch(':id/accept')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Hôte : Accepter une réservation' })
+  accept(@Request() req: any, @Param('id') id: string) {
+    return this.bookingsService.accept(id, req.user.id);
+  }
+
+  @Patch(':id/reject')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Hôte : Refuser une réservation' })
+  reject(@Request() req: any, @Param('id') id: string) {
+    return this.bookingsService.reject(id, req.user.id);
+  }
 }

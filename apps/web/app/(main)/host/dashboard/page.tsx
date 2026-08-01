@@ -52,6 +52,22 @@ export default function HostDashboardPage() {
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   });
 
+    async function handleAction(bookingId: string, action: 'accept' | 'reject') {
+    const token = localStorage.getItem('afristay_token');
+    if (!token) return;
+    try {
+      await apiRequest(`/api/bookings/${bookingId}/${action}`, { method: 'PATCH', token });
+      // On met à jour la liste localement sans recharger toute la page
+      setBookings(prev => prev.map(b => 
+        b.id === bookingId 
+          ? { ...b, status: action === 'accept' ? 'CONFIRMED' : 'CANCELLED' } 
+          : b
+      ));
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   return (
     <>
       <Navbar />
@@ -125,10 +141,27 @@ export default function HostDashboardPage() {
                       </p>
                     </div>
 
-                    {/* Prix */}
+                    {/* Prix + Actions */}
                     <div className="text-right shrink-0">
                       <p className="font-extrabold text-lg">{formatPrice(booking.totalAmount)}</p>
-                      <p className="text-xs text-[var(--text-ter)]">Vous recevez {formatPrice(booking.hostPayout || 0)}</p>
+                      <p className="text-xs text-[var(--text-ter)] mb-3">Vous recevez {formatPrice(booking.hostPayout || 0)}</p>
+                      
+                      {booking.status === 'PENDING' && (
+                        <div className="flex gap-2 justify-end">
+                          <button 
+                            onClick={() => handleAction(booking.id, 'reject')}
+                            className="px-3 py-1.5 text-xs font-bold border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                          >
+                            Refuser
+                          </button>
+                          <button 
+                            onClick={() => handleAction(booking.id, 'accept')}
+                            className="px-3 py-1.5 text-xs font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          >
+                            Accepter
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

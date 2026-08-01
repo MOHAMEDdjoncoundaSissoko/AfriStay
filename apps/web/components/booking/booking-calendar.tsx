@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { apiRequest } from '@/lib/api/client';
 
 interface BlockedDate {
   date: string;
@@ -9,7 +10,6 @@ interface BlockedDate {
 
 interface BookingCalendarProps {
   propertyId: string;
-  unavailableDates: BlockedDate[];
   checkIn: Date | null;
   checkOut: Date | null;
   onDateSelect: (date: Date) => void;
@@ -18,15 +18,32 @@ interface BookingCalendarProps {
 const MONTH_NAMES = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const DAY_NAMES = ['Di','Lu','Ma','Me','Je','Sa','Ve'];
 
-export function BookingCalendar({ propertyId, unavailableDates, checkIn, checkOut, onDateSelect }: BookingCalendarProps) {
+export function BookingCalendar({ propertyId, checkIn, checkOut, onDateSelect }: BookingCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [unavailableDates, setUnavailableDates] = useState<BlockedDate[]>([]);
 
-  const blockedSet = new Set(unavailableDates.map((d) => d.date));
+  // 👉 NOUVEAU : On charge les dates INDISPONIBLES à chaque fois qu'on change de mois
+  useEffect(() => {
+    const m = String(currentMonth + 1).padStart(2, '0');
+    const y = String(currentYear);
+    apiRequest<BlockedDate[]>(`/api/properties/${propertyId}/availability?month=${m}&year=${y}`)
+      .then(setUnavailableDates)
+      .catch(() => {});
+  }, [propertyId, currentMonth, currentYear]); // Les dépendances ici sont la clé !
+
+  // On extrait juste "2026-08-01" au cas où l'API renvoie "2026-08-01T00:00:00.000Z"
+  const blockedSet = new Set(
+    unavailableDates.map((d) => d.date.includes('T') ? d.date.split('T')[0] : d.date)
+  );
   const today = new Date(); today.setHours(0,0,0,0);
 
   function isBlocked(date: Date): boolean {
-    const str = date.toISOString().split('T')[0];
+    // On utilise l'heure LOCALE, pas UTC, pour éviter le décalage de fuseau
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const str = `${year}-${month}-${day}`;
     return blockedSet.has(str);
   }
 
@@ -51,14 +68,7 @@ export function BookingCalendar({ propertyId, unavailableDates, checkIn, checkOu
 
   function handleDateClick(date: Date) {
     if (isPast(date) || isBlocked(date)) return;
-
-    if (!checkIn || (checkIn && checkOut)) {
-      onDateSelect(date);
-    } else if (date <= checkIn) {
-      onDateSelect(date);
-    } else {
-      onDateSelect(date);
-    }
+    onDateSelect(date);
   }
 
   function prevMonth() {

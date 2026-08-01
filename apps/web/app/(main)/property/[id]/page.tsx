@@ -47,9 +47,6 @@ export default function PropertyPage() {
   const [error, setError] = useState('');
   const [checkIn, setCheckIn] = useState<Date | null>(null);
   const [checkOut, setCheckOut] = useState<Date | null>(null);
-  const [unavailableDates, setUnavailableDates] = useState<
-    { date: string; status: string }[]
-  >([]);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
@@ -64,11 +61,6 @@ export default function PropertyPage() {
       .finally(() => setLoading(false));
 
     // 2. Charger les dates indisponibles
-    const m = String(new Date().getMonth() + 1).padStart(2, '0');
-    const y = String(new Date().getFullYear());
-    apiRequest<{ date: string; status: string }[]>(`/api/properties/${id}/availability?month=${m}&year=${y}`)
-      .then(setUnavailableDates)
-      .catch(() => {});
   }, [id]);
 
   if (loading) {
@@ -242,7 +234,6 @@ export default function PropertyPage() {
                 <div className="mb-4">
                   <BookingCalendar
                     propertyId={property.id}
-                    unavailableDates={unavailableDates}
                     checkIn={checkIn}
                     checkOut={checkOut}
                     onDateSelect={(date) => {
@@ -340,7 +331,7 @@ export default function PropertyPage() {
                             numberOfGuests: 1,
                           },
                         });
-                        await apiRequest(`/api/bookings/${result.booking.id}/confirm-payment`, { method: 'PATCH', token });
+                        //await apiRequest(`/api/bookings/${result.booking.id}/confirm-payment`, { method: 'PATCH', token });
                         setBookingSuccess(true);
                       } catch (err: unknown) {
                         setBookingError(err instanceof Error ? err.message : 'Erreur lors de la réservation');
@@ -364,8 +355,8 @@ export default function PropertyPage() {
                 {bookingSuccess && (
                   <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-xl text-center">
                     <i className="fa-solid fa-circle-check text-green-600 text-2xl mb-2 block" />
-                    <p className="font-semibold text-green-800">Réservation confirmée !</p>
-                    <p className="text-sm text-green-600 mt-1">Un email de confirmation vous a été envoyé.</p>
+                    <p className="font-semibold text-green-800">Demande envoyée !</p>
+                    <p className="text-sm text-green-600 mt-1">L'hôte a 24h pour accepter ou refuser votre demande.</p>
                   </div>
                 )}
               </div>
