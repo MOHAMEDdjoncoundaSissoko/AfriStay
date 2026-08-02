@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/navbar';
+import { ImageUpload } from '@/components/ui/image-upload';
 import { Footer } from '@/components/layout/footer';
 import { apiRequest } from '@/lib/api/client';
 
@@ -82,46 +83,18 @@ export default function BecomeHostPage() {
   const [countries, setCountries] = useState<{ id: string; name: string; code: string; flagEmoji: string }[]>([]);
   const [cities, setCities] = useState<{ id: string; name: string; slug: string; countryId: string }[]>([]);
   const [propertyTypes, setPropertyTypes] = useState<{ id: string; name: string; icon: string }[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  // Charger les données au montage
-  useState(() => {
-    apiRequest<{ properties: any[] }>('/api/properties?limit=1').catch(() => null);
-    // Pour l'instant on hardcode les IDs qu'on connaît — on améliorera plus tard
-    setCountries([
-      { id: 'cmrz1wrbr0005426u2s5a13f0', name: "Côte d'Ivoire", code: 'CI', flagEmoji: '🇨🇮' },
-      { id: 'cmrz1wrbr0006426u6nvkb3ft', name: 'Sénégal', code: 'SN', flagEmoji: '🇸🇳' },
-      { id: 'cmrz1wrbp0004426ubiqdlzrn', name: 'Nigeria', code: 'NG', flagEmoji: '🇳🇬' },
-      { id: 'cmrz1wrbd0001426um0obtrra', name: 'Ghana', code: 'GH', flagEmoji: '🇬🇭' },
-      { id: 'cmrz1wrbq0005426u8xzhjefj', name: 'Mali', code: 'ML', flagEmoji: '🇲🇱' },
-      { id: 'cmrz1wrbs0007426u3qthd1dx', name: 'Bénin', code: 'BJ', flagEmoji: '🇧🇯' },
-      { id: 'cmrz1wrbp0003426uhze2lx56', name: 'Burkina Faso', code: 'BF', flagEmoji: '🇧🇫' },
-      { id: 'cmrz1wrbr0009426u5z9z84ax', name: 'Guinée', code: 'GN', flagEmoji: '🇬🇳' },
-      { id: 'cmrz1wrbq0006426u7m8089vq', name: 'Togo', code: 'TG', flagEmoji: '🇹🇬' },
-      { id: 'cmrz1wrbp0005426uf8ls7yh0', name: 'Niger', code: 'NE', flagEmoji: '🇳🇪' },
-      { id: 'cmrz1wrbr0008426uitfzd5qh', name: 'Cameroun', code: 'CM', flagEmoji: '🇨🇲' },
-    ]);
-    setCities([
-      { id: 'cmrz1wrc0000h426uwl02zhbf', name: 'Abidjan', slug: 'abidjan', countryId: 'cmrz1wrbr0005426u2s5a13f0' },
-      { id: 'cmrz1wrc0000s426ul6n2eyiv', name: 'Dakar', slug: 'dakar', countryId: 'cmrz1wrbr0006426u6nvkb3ft' },
-      { id: 'cmrz1wrc0000l426u20r5crvk', name: 'Lagos', slug: 'lagos', countryId: 'cmrz1wrbp0004426ubiqdlzrn' },
-      { id: 'cmrz1wrc0000o426u617djzbp', name: 'Accra', slug: 'accra', countryId: 'cmrz1wrbd0001426um0obtrra' },
-      { id: 'cmrz1wrc0000n426u2k7zzdhx', name: 'Bamako', slug: 'bamako', countryId: 'cmrz1wrbq0005426u8xzhjefj' },
-      { id: 'cmrz1wrc0000k426u82c8y5sd', name: 'Cotonou', slug: 'cotonou', countryId: 'cmrz1wrbs0007426u3qthd1dx' },
-      { id: 'cmrz1wrc0000j426u3s03mfx4', name: 'Ouagadougou', slug: 'ouagadougou', countryId: 'cmrz1wrbp0003426uhze2lx56' },
-      { id: 'cmrz1wrc0000m426u0oe0w4iz', name: 'Conakry', slug: 'conakry', countryId: 'cmrz1wrbr0009426u5z9z84ax' },
-      { id: 'cmrz1wrc0000p426u4kxu4wjs', name: 'Lomé', slug: 'lome', countryId: 'cmrz1wrbq0006426u7m8089vq' },
-      { id: 'cmrz1wrc0000q426u70wzgwad', name: 'Niamey', slug: 'niamey', countryId: 'cmrz1wrbp0005426uf8ls7yh0' },
-      { id: 'cmrz1wrct0016426uaohoyf76', name: 'Douala', slug: 'douala', countryId: 'cmrz1wrbr0008426uitfzd5qh' },
-    ]);
-    setPropertyTypes([
-      { id: 'cmrz1wrcz001f426u3z1mhljo', name: 'Villa', icon: 'fa-house-chimney' },
-      { id: 'cmrz1wrcz001d426usrswbqzu', name: 'Appartement', icon: 'fa-building' },
-      { id: 'cmrz1wrcz001e426u1x3xjpcn', name: 'Studio', icon: 'fa-door-open' },
-      { id: 'cmrz1wrcz001g426u7413dtql', name: 'Maison', icon: 'fa-house' },
-      { id: 'cmrz1wrcz001h426u37f9z130', name: 'Résidence', icon: 'fa-city' },
-      { id: 'cmrz1wrcz001i426u5dxv4q6f', name: 'Hôtel', icon: 'fa-hotel' },
-    ]);
-  });
+  // Charger les vrais IDs depuis la base de données
+  useEffect(() => {
+    apiRequest<any>('/api/references')
+      .then((data) => {
+        setCountries(data.countries);
+        setCities(data.cities);
+        setPropertyTypes(data.propertyTypes);
+      })
+      .catch(() => {});
+  }, []);
 
   const filteredCities = cities.filter((c) => c.countryId === form.countryId);
 
@@ -179,6 +152,7 @@ export default function BecomeHostPage() {
     try {
       const payload = {
         ...form,
+        imageUrls: imageUrls, // On ajoute les photos de Cloudinary
         pricePerWeek: form.pricePerWeek ? parseInt(form.pricePerWeek) : null,
         pricePerMonth: form.pricePerMonth ? parseInt(form.pricePerMonth) : null,
       };
@@ -274,6 +248,13 @@ export default function BecomeHostPage() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Upload de photos */}
+                <div>
+                  <label className={labelClass}>Photos de votre logement</label>
+                  <p className="text-xs text-[var(--text-ter)] mb-3">La première photo sera utilisée comme image principale. Max 5 photos.</p>
+                  <ImageUpload onUpload={(urls) => setImageUrls(urls)} />
                 </div>
               </div>
             )}

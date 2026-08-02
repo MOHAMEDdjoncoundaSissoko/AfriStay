@@ -89,4 +89,8 @@ export class CreatePropertyDto {
   @IsArray()
   @IsString({ each: true })
   amenitySlugs?: string[];
+
+  @IsOptional()
+  @IsArray()
+  imageUrls?: string[];
 }

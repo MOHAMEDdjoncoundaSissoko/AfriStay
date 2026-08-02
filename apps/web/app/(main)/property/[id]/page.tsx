@@ -36,6 +36,7 @@ interface Property {
   country: { name: string; code: string; flagEmoji: string };
   propertyType: { name: string; icon: string };
   amenities: { amenity: { name: string; icon: string; slug: string } }[];
+  images: { id: string; url: string; isCover: boolean; sortOrder: number }[];
   host: { id: string; firstName: string; lastName: string; avatarUrl: string | null };
   reviews: { id: string; rating: number; comment: string; createdAt: string; reviewer: { firstName: string; lastName: string } }[];
 }
@@ -142,11 +143,23 @@ export default function PropertyPage() {
               {/* Galerie */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 h-auto md:h-[400px] mb-8 rounded-2xl overflow-hidden">
                 <div className="md:col-span-2">
-                  <img src={imgUrl(imageSeeds[0])} alt={property.title} className="w-full h-full object-cover" />
+                  <img 
+                    src={property.images && property.images.length > 0 ? property.images[0].url : imgUrl(imageSeeds[0])} 
+                    alt={property.title} 
+                    className="w-full h-full object-cover" 
+                  />
                 </div>
                 <div className="grid grid-rows-2 gap-2">
-                  <img src={imgUrl(imageSeeds[1])} alt="" className="w-full h-full object-cover rounded-lg" />
-                  <img src={imgUrl(imageSeeds[2])} alt="" className="w-full h-full object-cover rounded-lg" />
+                  <img 
+                    src={property.images && property.images.length > 1 ? property.images[1].url : imgUrl(imageSeeds[1])} 
+                    alt="" 
+                    className="w-full h-full object-cover rounded-lg" 
+                  />
+                  <img 
+                    src={property.images && property.images.length > 2 ? property.images[2].url : imgUrl(imageSeeds[2])} 
+                    alt="" 
+                    className="w-full h-full object-cover rounded-lg" 
+                  />
                 </div>
               </div>
 

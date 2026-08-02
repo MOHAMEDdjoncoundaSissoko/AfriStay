@@ -14,6 +14,7 @@ interface Property {
   country: { name: string; code: string };
   propertyType: { name: string };
   amenities: { amenity: { name: string; icon: string } }[];
+  images: { id: string; url: string }[];
   ratingAverage: number;
   reviewCount: number;
 }
@@ -31,10 +32,10 @@ export function PropertyCard({ property, isActive }: { property: Property; isAct
   }`}>
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-          <img
-            src={imgUrl}
-            alt={property.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          <img 
+            src={property.images && property.images.length > 0 ? property.images[0].url : `https://picsum.photos/seed/${property.id}/600/400`} 
+            alt={property.title} 
+            className="w-full h-48 object-cover"
           />
           <div className="absolute top-3 left-3 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-md">
             {property.propertyType.name}

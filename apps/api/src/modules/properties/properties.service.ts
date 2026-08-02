@@ -51,6 +51,16 @@ export class PropertiesService {
               })),
             }
           : undefined,
+        images: dto.imageUrls
+          ? {
+              create: dto.imageUrls.map((url, index) => ({
+                url: url,
+                publicId: url.split('/').pop() || '',
+                isCover: index === 0, // La première image est la couverture
+                sortOrder: index,
+              })),
+            }
+          : undefined,
       },
       include: {
         propertyType: true,

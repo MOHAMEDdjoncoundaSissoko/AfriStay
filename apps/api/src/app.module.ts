@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { PropertiesModule } from './modules/properties/properties.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { MessagesModule } from './modules/messages/messages.module';
+import { ReferencesController } from './modules/properties/references.controller';
 
 @Module({
   imports: [
@@ -17,5 +18,6 @@ import { MessagesModule } from './modules/messages/messages.module';
     BookingsModule,
     MessagesModule,
   ],
+  controllers: [ReferencesController], // <-- AJOUTE CETTE LIGNE
 })
 export class AppModule {}
