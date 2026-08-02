@@ -144,6 +144,75 @@ export class PropertiesService {
     });
   }
 
+  async update(userId: string, id: string, dto: any) {
+    const property = await this.prisma.property.findUnique({ where: { id } });
+    if (!property) throw new NotFoundException('Logement non trouvé');
+    if (property.hostId !== userId) throw new ForbiddenException('Non autorisé');
+
+    // Nettoyer les données pour éviter les erreurs Prisma (ex: NaN)
+    const data: any = {};
+    
+    if (dto.title && dto.title !== property.title) {
+      data.title = dto.title;
+      data.slug = dto.title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+    }
+    if (dto.description) data.description = dto.description;
+    if (dto.address) data.address = dto.address;
+    if (dto.latitude) data.latitude = parseFloat(dto.latitude);
+    if (dto.longitude) data.longitude = parseFloat(dto.longitude);
+    if (dto.maxGuests) data.maxGuests = parseInt(dto.maxGuests);
+    if (dto.bedrooms) data.bedrooms = parseInt(dto.bedrooms);
+    if (dto.beds) data.beds = parseInt(dto.beds);
+    if (dto.bathrooms) data.bathrooms = parseInt(dto.bathrooms);
+    if (dto.areaSqm) data.areaSqm = parseInt(dto.areaSqm);
+    if (dto.petsAllowed !== undefined) data.petsAllowed = dto.petsAllowed;
+    if (dto.smokingAllowed !== undefined) data.smokingAllowed = dto.smokingAllowed;
+    
+    // Prix : ignorer les valeurs vides ou invalides (NaN)
+    if (dto.pricePerNight && !isNaN(Number(dto.pricePerNight))) data.pricePerNight = Number(dto.pricePerNight);
+    if (dto.pricePerWeek && !isNaN(Number(dto.pricePerWeek))) data.pricePerWeek = Number(dto.priceWeek);
+    if (dto.pricePerMonth && !isNaN(Number(dto.pricePerMonth))) data.pricePerMonth = Number(dto.pricePerMonth);
+    if (dto.propertyTypeId) data.propertyTypeId = dto.propertyTypeId;
+    if (dto.cityId) data.cityId = dto.cityId;
+    if (dto.countryId) data.countryId = dto.countryId;
+
+    // Équipements : ne mettre à jour QUE si une liste est fournie
+      if (dto.amenitySlugs && Array.isArray(dto.amenioritySlugs) && dto.amenitySlugs.length > 0) {
+      await this.prisma.propertyAmenity.deleteMany({ where: { propertyId: id } });
+      data.amenities = {
+        create: dto.amenitySlugs.map((slug: string) => ({
+          amenity: { connect: { slug } },
+        })),
+      };
+    }
+
+    // Images : ne remplacer QUE si de NOUVELLES images sont fournies
+    if (dto.imageUrls && Array.isArray(dto.imageUrls) && dto.imageUrls.length > 0) {
+      await this.prisma.propertyImage.deleteMany({ where: { propertyId: id } });
+      data.images = {
+        create: dto.imageUrls.map((url: string, index: number) => ({
+          url,
+          publicId: url.split('/').pop() || '',
+          isCover: index === 0,
+          sortOrder: index,
+        })),
+      };
+    }
+
+    return this.prisma.property.update({
+      where: { id },
+      data,
+      include: {
+        propertyType: true,
+        city: true,
+        country: true,
+        amenities: { include: { amenity: true } },
+        images: { orderBy: { sortOrder: 'asc' } },
+        host: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
+      },
+    });
+  }
+
   async delete(userId: string, id: string) {
     const property = await this.prisma.property.findUnique({ where: { id } });
     if (!property) throw new NotFoundException('Logement non trouvé');

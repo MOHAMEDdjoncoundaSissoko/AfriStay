@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PropertiesService } from './properties.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
@@ -29,6 +29,14 @@ export class PropertiesController {
   @ApiOperation({ summary: 'Données légères pour la carte (id, prix, coordonnées)' })
   findForMap(@Query() query: MapQueryDto) {
     return this.propertiesService.findForMap(query);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Modifier un logement' })
+  update(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+    return this.propertiesService.update(req.user.id, id, body);
   }
 
   @Get(':id/availability')

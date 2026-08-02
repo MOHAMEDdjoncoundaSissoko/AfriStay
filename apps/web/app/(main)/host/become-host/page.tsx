@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Navbar } from '@/components/layout/navbar';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Footer } from '@/components/layout/footer';
@@ -74,6 +74,9 @@ const AMENITIES = [
 
 export default function BecomeHostPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('edit') || null;
+  const isEditMode = !!editId && editId !== 'new';
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<PropertyForm>(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
@@ -87,14 +90,49 @@ export default function BecomeHostPage() {
 
   // Charger les vrais IDs depuis la base de données
   useEffect(() => {
-    apiRequest<any>('/api/references')
-      .then((data) => {
+    async function fetchData() {
+      try {
+        const data = await apiRequest<any>('/api/references');
         setCountries(data.countries);
         setCities(data.cities);
         setPropertyTypes(data.propertyTypes);
-      })
-      .catch(() => {});
-  }, []);
+
+        // Si on est en mode édition, charger les données du logement
+        if (editId && editId !== 'new') {
+          const prop = await apiRequest<any>(`/api/properties/${editId}`);
+          setForm({
+            title: prop.title,
+            description: prop.description,
+            propertyTypeId: prop.propertyTypeId,
+            countryId: prop.countryId,
+            cityId: prop.cityId,
+            address: prop.address,
+            latitude: prop.latitude,
+            longitude: prop.longitude,
+            pricePerNight: prop.pricePerNight,
+            pricePerWeek: prop.pricePerWeek ? String(prop.pricePerWeek) : '',
+            pricePerMonth: prop.pricePerMonth ? String(prop.pricePerMonth) : '',
+            bedrooms: prop.bedrooms,
+            beds: prop.beds,
+            bathrooms: prop.bathrooms,
+            areaSqm: prop.areaSqm,
+            maxGuests: prop.maxGuests,
+            petsAllowed: prop.petsAllowed,
+            smokingAllowed: prop.smokingAllowed,
+            amenitySlugs: prop.amenities?.map((a: any) => a.amenity.slug) || [],
+          });
+          
+          // Si le logement a des images, on les charge dans l'upload
+          if (prop.images) {
+            setImageUrls(prop.images.map((img: any) => img.url));
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchData();
+  }, [editId]);
 
   const filteredCities = cities.filter((c) => c.countryId === form.countryId);
 
@@ -157,13 +195,15 @@ export default function BecomeHostPage() {
         pricePerMonth: form.pricePerMonth ? parseInt(form.pricePerMonth) : null,
       };
 
-      await apiRequest('/api/properties', {
-        method: 'POST',
+      const endpoint = isEditMode ? `/api/properties/${editId}` : '/api/properties';
+      const method = isEditMode ? 'PATCH' : 'POST';
+      await apiRequest(endpoint, {
+        method,
         body: payload,
         token,
       });
 
-      router.push('/search');
+      router.push('/host/dashboard');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur lors de la publication";
       setError(message);
@@ -183,7 +223,8 @@ export default function BecomeHostPage() {
         <div className="max-w-2xl mx-auto px-6 py-10">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold mb-2">Publiez votre logement</h1>
+            <h1 className="text-2xl font-bold mb-2">{isEditMode ? 'Modifier votre logement' : 'Publiez votre logement'}</h1>
+            <p className="text-[var(--text-sec)]">{isEditMode ? 'Modifiez les informations de votre annonce.' : 'Remplissez les informations ci-dessous.'}</p>
             <p className="text-[var(--text-sec)]">Remplissez les informations ci-dessous. Vous pourrez modifier votre annonce à tout moment.</p>
           </div>
 
@@ -536,7 +577,7 @@ export default function BecomeHostPage() {
                   disabled={loading}
                   className="px-8 py-3 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
                 >
-                  {loading ? 'Publication...' : 'Publier mon logement'}
+                {loading ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Publier mon logement'}
                 </button>
               )}
             </div>
