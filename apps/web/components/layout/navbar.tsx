@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export function Navbar() {
-  const [user, setUser] = useState<{ firstName: string } | null>(null);
+  const [user, setUser] = useState<{ firstName: string; avatarUrl?: string | null } | null>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('afristay_user');
@@ -52,12 +52,16 @@ export function Navbar() {
               <i className="fa-regular fa-comment-dots text-xl" />
             </Link>
 
-            <div className="flex items-center gap-2 px-3 py-1.5 border border-[var(--border)] rounded-full">
-              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold">
-                {user.firstName[0]}
-              </div>
-              <span className="text-sm font-medium">{user.firstName}</span>
+            <Link href="/profile" className="flex items-center gap-2 px-3 py-1.5 border border-[var(--border)] rounded-full hover:bg-gray-50 transition-colors">
+            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold overflow-hidden">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                user.firstName[0]
+              )}
             </div>
+            <span className="text-sm font-medium">{user.firstName}</span>
+          </Link>
             </>
           ) : (
             <>

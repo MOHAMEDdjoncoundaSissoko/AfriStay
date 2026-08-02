@@ -163,6 +163,7 @@ model User {
   firstName         String    @map("first_name")
   lastName          String    @map("last_name")
   avatarUrl         String?   @map("avatar_url")
+  bio               String?
   roles             UserRole[]
   emailVerified     Boolean   @default(false) @map("email_verified")
   phoneVerified     Boolean   @default(false) @map("phone_verified")

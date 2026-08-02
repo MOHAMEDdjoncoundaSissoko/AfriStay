@@ -164,15 +164,19 @@ export default function PropertyPage() {
               </div>
 
               {/* Hôte */}
-              <div className="flex items-center gap-4 py-6 border-b border-[var(--border)] mb-8">
-                <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold">
-                  {property.host.firstName[0]}
+              <Link href={`/host/${property.host.id}`} className="flex items-center gap-4 py-6 border-b border-[var(--border)] mb-8 group">
+                <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center text-lg font-bold overflow-hidden">
+                  {property.host.avatarUrl ? (
+                    <img src={property.host.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    property.host.firstName[0]
+                  )}
                 </div>
                 <div>
-                  <p className="font-semibold">Hôte : {property.host.firstName} {property.host.lastName}</p>
+                  <p className="font-semibold group-hover:text-primary transition-colors">Hôte : {property.host.firstName} {property.host.lastName}</p>
                   <p className="text-sm text-[var(--text-sec)]">Membre depuis 2024</p>
                 </div>
-              </div>
+              </Link>
 
               {/* Chiffres clés */}
               <div className="grid grid-cols-3 gap-6 py-6 border-b border-[var(--border)] mb-8 text-center">

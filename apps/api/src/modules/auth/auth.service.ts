@@ -96,4 +96,18 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
+
+  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string; bio?: string; avatarUrl?: string }) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.firstName && { firstName: data.firstName }),
+        ...(data.lastName && { lastName: data.lastName }),
+        ...(data.phone && { phone: data.phone }),
+        ...(data.bio && { bio: data.bio }),
+        ...(data.avatarUrl && { avatarUrl: data.avatarUrl }),
+      },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, bio: true, avatarUrl: true, roles: true },
+    });
+  }
 }
