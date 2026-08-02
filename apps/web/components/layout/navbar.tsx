@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { VerifiedBadge } from '@/components/shared/verified-badge';
 
 export function Navbar() {
-  const [user, setUser] = useState<{ firstName: string; avatarUrl?: string | null } | null>(null);
+  const [user, setUser] = useState<{ firstName: string; avatarUrl?: string | null; isVerified?: boolean } | null>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('afristay_user');
@@ -61,6 +62,7 @@ export function Navbar() {
               )}
             </div>
             <span className="text-sm font-medium">{user.firstName}</span>
+            {user.isVerified && <VerifiedBadge size="sm" />}
           </Link>
             </>
           ) : (

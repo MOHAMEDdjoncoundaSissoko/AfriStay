@@ -34,4 +34,12 @@ export class AuthController {
   updateProfile(@Request() req: any, @Body() body: any) {
     return this.authService.updateProfile(req.user.id, body);
   }
+
+  @Post('verification')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Soumettre un document de vérification' })
+  submitVerification(@Request() req: any, @Body() body: { documentType: string; documentUrl: string }) {
+    return this.authService.submitVerification(req.user.id, body.documentType, body.documentUrl);
+  }
 }

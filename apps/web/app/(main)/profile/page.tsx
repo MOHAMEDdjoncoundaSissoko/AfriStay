@@ -5,6 +5,7 @@ import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 import { apiRequest } from '@/lib/api/client';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { VerifiedBadge } from '@/components/shared/verified-badge';
 
 interface UserProfile {
   id: string;
@@ -15,6 +16,9 @@ interface UserProfile {
   bio: string | null;
   avatarUrl: string | null;
   roles: string[];
+  isVerified?: boolean;
+  birthDate?: string;
+  countryOfResidence?: string;
 }
 
 export default function ProfilePage() {
@@ -30,6 +34,12 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [birthDate, setBirthDate] = useState('');
+  const [countryOfResidence, setCountryOfResidence] = useState('');
+  const [countries, setCountries] = useState<{ id: string; name: string; flagEmoji: string }[]>([]);
+  const [docType, setDocType] = useState('');
+  const [docUrl, setDocUrl] = useState('');
+  const [verifLoading, setVerifLoading] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('afristay_user');
@@ -41,8 +51,16 @@ export default function ProfilePage() {
       setPhone(parsed.phone || '');
       setBio(parsed.bio || '');
       setAvatarUrl(parsed.avatarUrl);
+      setBirthDate(parsed.birthDate ? parsed.birthDate.split('T')[0] : '');
+      setCountryOfResidence(parsed.countryOfResidence || '');
     }
     setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    apiRequest<any>('/api/references')
+      .then((data) => setCountries(data.countries || []))
+      .catch(() => {});
   }, []);
 
   async function handleSave(e: React.FormEvent) {
@@ -58,7 +76,7 @@ export default function ProfilePage() {
       const updated = await apiRequest<any>('/api/auth/profile', {
         method: 'PATCH',
         token,
-        body: { firstName, lastName, phone, bio, avatarUrl },
+        body: { firstName, lastName, phone, bio, avatarUrl, birthDate, countryOfResidence },
       });
 
       // Mettre à jour le state et le localStorage
@@ -69,6 +87,22 @@ export default function ProfilePage() {
       setError(err?.message || 'Erreur lors de la mise à jour');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleVerification(e: React.FormEvent) {
+    e.preventDefault();
+    if (!docType || !docUrl) return;
+    setVerifLoading(true);
+    const token = localStorage.getItem('afristay_token');
+    try {
+      await apiRequest('/api/auth/verification', { method: 'POST', token, body: { documentType: docType, documentUrl: docUrl } });
+      setDocUrl(''); setDocType('');
+      alert('Document envoyé avec succès ! Il sera vérifié par notre équipe.');
+    } catch (err) {
+      alert('Erreur lors de l\'envoi du document.');
+    } finally {
+      setVerifLoading(false);
     }
   }
 
@@ -141,6 +175,22 @@ export default function ProfilePage() {
               <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+225 00 00 00 00" className={inputClass} />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Date de naissance</label>
+                <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Pays de résidence</label>
+                <select value={countryOfResidence} onChange={(e) => setCountryOfResidence(e.target.value)} className="w-full px-4 py-3 border border-[var(--border)] rounded-xl outline-none focus:border-primary text-sm bg-white appearance-none">
+                  <option value="">Sélectionnez...</option>
+                  {countries.map((c) => (
+                    <option key={c.id} value={c.name}>{c.flagEmoji} {c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium mb-1.5">À propos de moi</label>
               <textarea 
@@ -158,6 +208,44 @@ export default function ProfilePage() {
               </button>
             </div>
           </form>
+
+          {/* Section Vérification d'identité */}
+          <div className="bg-white rounded-2xl border border-[var(--border)] p-6 mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">Vérification d'identité</h2>
+              {user?.isVerified ?(
+                <VerifiedBadge />
+              ) : (
+                <span className="text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1">
+                  Non vérifié
+                </span>
+              )}
+            </div>
+            
+            {user?.isVerified ? (
+              <p className="text-sm text-[var(--text-sec)]">Votre pièce d'identité a été approuvée. Merci pour votre confiance.</p>
+            ) : (
+              <form onSubmit={handleVerification} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Type de document</label>
+                  <select value={docType} onChange={(e) => setDocType(e.target.value)} className="w-full px-4 py-3 border border-[var(--border)] rounded-xl outline-none focus:border-primary text-sm bg-white appearance-none">
+                    <option value="">Sélectionnez...</option>
+                    <option value="ID_CARD">Carte d'identité nationale</option>
+                    <option value="PASSPORT">Passeport</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Photo du document</label>
+                  <p className="text-xs text-[var(--text-ter)] mb-2">Prenez une photo claire de votre carte d'identité ou passeport.</p>
+                  <ImageUpload onUpload={(urls) => { if (urls.length > 0) setDocUrl(urls[0]); }} maxImages={1} />
+                </div>
+                <button type="submit" disabled={!docType || !docUrl || verifLoading} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors text-sm">
+                  {verifLoading ? 'Envoi en cours...' : 'Envoyer pour vérification'}
+                </button>
+              </form>
+            )}
+          </div>
+
         </div>
       </main>
       <Footer />

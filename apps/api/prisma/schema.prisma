@@ -2,6 +2,22 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model UserVerification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  documentType String   // "ID_CARD" ou "PASSPORT"
+  documentUrl  String   // Lien Cloudinary
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedAt  DateTime?
+  rejectReason String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("user_verifications")
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -164,6 +180,9 @@ model User {
   lastName          String    @map("last_name")
   avatarUrl         String?   @map("avatar_url")
   bio               String?
+  birthDate         DateTime?   // <-- AJOUTE
+  countryOfResidence String?    // <-- AJOUTE
+  isVerified        Boolean   @default(false) // <-- AJOUTE
   roles             UserRole[]
   emailVerified     Boolean   @default(false) @map("email_verified")
   phoneVerified     Boolean   @default(false) @map("phone_verified")
@@ -195,6 +214,8 @@ model User {
   @@index([roles], map: "idx_user_roles")
   @@index([isActive])
   @@map("users")
+
+  verifications UserVerification[]
 }
 
 // ============================================================

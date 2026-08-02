@@ -97,7 +97,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string; bio?: string; avatarUrl?: string }) {
+    async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string; bio?: string; avatarUrl?: string; birthDate?: string; countryOfResidence?: string }) {
     return this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -106,8 +106,21 @@ export class AuthService {
         ...(data.phone && { phone: data.phone }),
         ...(data.bio && { bio: data.bio }),
         ...(data.avatarUrl && { avatarUrl: data.avatarUrl }),
+        ...(data.birthDate && { birthDate: new Date(data.birthDate) }),
+        ...(data.countryOfResidence && { countryOfResidence: data.countryOfResidence }),
       },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, bio: true, avatarUrl: true, roles: true },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, bio: true, avatarUrl: true, roles: true, isVerified: true, birthDate: true, countryOfResidence: true },
+    });
+  }
+
+  async submitVerification(userId: string, documentType: string, documentUrl: string) {
+    // Supprimer les anciennes demandes en attente
+    await this.prisma.userVerification.deleteMany({
+      where: { userId, status: 'PENDING' }
+    });
+
+    return this.prisma.userVerification.create({
+      data: { userId, documentType, documentUrl }
     });
   }
 }
