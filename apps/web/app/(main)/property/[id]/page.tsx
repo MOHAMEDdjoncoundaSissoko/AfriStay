@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/footer';
 import { apiRequest } from '@/lib/api/client';
 import { formatPrice } from '@/lib/utils/format-price';
 import { BookingCalendar } from '@/components/booking/booking-calendar';
+import Lightbox from '@/components/shared/lightbox';
 
 interface Property {
   id: string;
@@ -51,6 +52,8 @@ export default function PropertyPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -143,22 +146,34 @@ export default function PropertyPage() {
               {/* Galerie */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 h-auto md:h-[400px] mb-8 rounded-2xl overflow-hidden">
                 <div className="md:col-span-2">
-                  <img 
-                    src={property.images && property.images.length > 0 ? property.images[0].url : imgUrl(imageSeeds[0])} 
-                    alt={property.title} 
-                    className="w-full h-full object-cover" 
+                  <img
+                    src={property.images && property.images.length > 0 ? property.images[0].url : imgUrl(imageSeeds[0])}
+                    alt={property.title}
+                    onClick={() => {
+                      setLightboxIndex(0);
+                      setLightboxOpen(true);
+                    }}
+                    className="w-full h-full object-cover cursor-pointer"
                   />
                 </div>
                 <div className="grid grid-rows-2 gap-2">
-                  <img 
-                    src={property.images && property.images.length > 1 ? property.images[1].url : imgUrl(imageSeeds[1])} 
-                    alt="" 
-                    className="w-full h-full object-cover rounded-lg" 
+                  <img
+                    src={property.images && property.images.length > 1 ? property.images[1].url : imgUrl(imageSeeds[1])}
+                    alt=""
+                    onClick={() => {
+                      setLightboxIndex(1);
+                      setLightboxOpen(true);
+                    }}
+                    className="w-full h-full object-cover rounded-lg cursor-pointer"
                   />
-                  <img 
-                    src={property.images && property.images.length > 2 ? property.images[2].url : imgUrl(imageSeeds[2])} 
-                    alt="" 
-                    className="w-full h-full object-cover rounded-lg" 
+                  <img
+                    src={property.images && property.images.length > 2 ? property.images[2].url : imgUrl(imageSeeds[2])}
+                    alt=""
+                    onClick={() => {
+                      setLightboxIndex(2);
+                      setLightboxOpen(true);
+                    }}
+                    className="w-full h-full object-cover rounded-lg cursor-pointer"
                   />
                 </div>
               </div>
@@ -383,6 +398,16 @@ export default function PropertyPage() {
       </main>
 
       <Footer />
+
+      <Lightbox
+        images={property.images.map((img) => ({
+          url: img.url,
+          id: img.id,
+        }))}
+        initialIndex={lightboxIndex}
+        isOpen={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
     </>
   );
 }
