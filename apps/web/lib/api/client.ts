@@ -24,6 +24,13 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const data = await res.json();
 
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('afristay_token');
+      localStorage.removeItem('afristay_refresh_token');
+      localStorage.removeItem('afristay_user');
+      if (typeof window !== 'undefined') window.location.href = '/login';
+      return data as T;
+    }
     throw new Error(data.message || 'Une erreur est survenue');
   }
 

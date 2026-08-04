@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/layout/navbar';
-import { apiRequest } from '@/lib/api/client';
+import { apiFetch } from '@/lib/api/client';
 
 interface Message {
   id: string;
@@ -32,16 +32,14 @@ export default function ChatPage() {
   // Charger les messages
   useEffect(() => {
     if (!id) return;
-    
-    // Charger la liste des conversations pour trouver l'autre utilisateur et le logement
-    apiRequest<ConversationInfo[]>('/api/messages/conversations').then(convs => {
-      const current = convs.find(c => c.id === id);
-      if (current) setConvInfo(current);
-    });
 
-    // Charger les messages
-    apiRequest<Message[]>(`/api/messages/conversations/${id}`)
-      .then(setMessages)
+    apiFetch('/api/messages/conversations').then((convs: any) => {
+      const current = Array.isArray(convs) ? convs.find((c: any) => c.id === id) : null;
+      if (current) setConvInfo(current);
+    }).catch(() => {});
+
+    apiFetch(`/api/messages/conversations/${id}`)
+      .then((data: any) => setMessages(Array.isArray(data) ? data : []))
       .catch(() => router.push('/messages'))
       .finally(() => setLoading(false));
   }, [id, router]);
@@ -55,16 +53,12 @@ export default function ChatPage() {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
-    const token = localStorage.getItem('afristay_token');
-    if (!token) return;
-
     try {
-      const sent = await apiRequest<Message>(`/api/messages/conversations/${id}/messages`, {
+      const sent = await apiFetch(`/api/messages/conversations/${id}/messages`, {
         method: 'POST',
-        token,
-        body: { content: newMessage }
+        body: JSON.stringify({ content: newMessage }),
       });
-      setMessages(prev => [...prev, sent]);
+      setMessages((prev) => [...prev, sent]);
       setNewMessage('');
     } catch (err) {
       console.error(err);

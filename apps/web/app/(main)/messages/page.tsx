@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/layout/navbar';
-import { apiRequest } from '@/lib/api/client';
+import { apiFetch } from '@/lib/api/client';
 
 interface Conversation {
   id: string;
@@ -17,8 +17,8 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiRequest<Conversation[]>('/api/messages/conversations')
-      .then(setConversations)
+    apiFetch('/api/messages/conversations')
+      .then((data: any) => setConversations(Array.isArray(data) ? data : []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
