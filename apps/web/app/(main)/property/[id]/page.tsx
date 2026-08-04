@@ -9,6 +9,7 @@ import { apiRequest } from '@/lib/api/client';
 import { formatPrice } from '@/lib/utils/format-price';
 import { BookingCalendar } from '@/components/booking/booking-calendar';
 import Lightbox from '@/components/shared/lightbox';
+import PropertyReviews from '@/components/property/property-reviews';
 
 interface Property {
   id: string;
@@ -229,27 +230,9 @@ export default function PropertyPage() {
               </div>
 
               {/* Avis */}
-              {property.reviews.length > 0 && (
-                <>
-                  <h2 className="text-lg font-bold mb-4">Avis ({property.reviews.length})</h2>
-                  <div className="space-y-4 mb-8">
-                    {property.reviews.map((review) => (
-                      <div key={review.id} className="py-4 border-b border-[var(--border-light)] last:border-0">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-semibold text-sm">{review.reviewer.firstName} {review.reviewer.lastName}</span>
-                          <span className="text-xs text-[var(--text-ter)]">{new Date(review.createdAt).toLocaleDateString('fr-FR')}</span>
-                        </div>
-                        <div className="flex gap-0.5 mb-2">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <i key={star} className={`fa-${star <= review.rating ? 'solid' : 'regular'} fa-star text-xs ${star <= review.rating ? 'text-accent' : 'text-[var(--border)]'}`} />
-                          ))}
-                        </div>
-                        <p className="text-sm text-[var(--text-sec)]">{review.comment}</p>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
+              <div className="mt-8 mb-8">
+                <PropertyReviews propertyId={property.id} />
+              </div>
             </div>
 
             {/* Colonne droite - Carte réservation */}
