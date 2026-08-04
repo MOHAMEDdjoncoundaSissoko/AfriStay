@@ -9,6 +9,7 @@ import { MessagesModule } from './modules/messages/messages.module';
 import { ReferencesController } from './modules/properties/references.controller';
 import { AdminModule } from './modules/admin/admin.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
     MessagesModule,
     AdminModule,
     ReviewsModule,
+    FavoritesModule,
   ],
   controllers: [ReferencesController], // <-- AJOUTE CETTE LIGNE
 })

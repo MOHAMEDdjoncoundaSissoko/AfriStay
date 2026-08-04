@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils/format-price';
+import FavoriteButton from '@/components/shared/favorite-button';
 
 interface Property {
   id: string;
@@ -37,6 +38,9 @@ export function PropertyCard({ property, isActive }: { property: Property; isAct
             alt={property.title} 
             className="w-full h-48 object-cover"
           />
+          <div className="absolute top-3 right-3 z-10">
+            <FavoriteButton propertyId={property.id} size="sm" />
+          </div>
           <div className="absolute top-3 left-3 bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-md">
             {property.propertyType.name}
           </div>

@@ -10,6 +10,7 @@ import { formatPrice } from '@/lib/utils/format-price';
 import { BookingCalendar } from '@/components/booking/booking-calendar';
 import Lightbox from '@/components/shared/lightbox';
 import PropertyReviews from '@/components/property/property-reviews';
+import FavoriteButton from '@/components/shared/favorite-button';
 
 interface Property {
   id: string;
@@ -124,11 +125,24 @@ export default function PropertyPage() {
       <main className="pt-[68px] min-h-screen" style={{ background: 'var(--bg)' }}>
         <div className="max-w-6xl mx-auto px-6 py-8">
           {/* Titre et localisation */}
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">{property.title}</h1>
-          <p className="text-[var(--text-sec)] mb-4 flex items-center gap-2">
-            <i className="fa-solid fa-location-dot text-primary text-sm" />
-            {property.address}, {property.city.name}, {property.country.name}
-          </p>
+          <div className="flex items-start justify-between gap-4 mb-2">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold">
+                {property.title}
+              </h1>
+
+              <p className="text-[var(--text-sec)] mt-2 flex items-center gap-2">
+                <i className="fa-solid fa-location-dot text-primary text-sm" />
+                {property.address}, {property.city.name}, {property.country.name}
+              </p>
+            </div>
+
+            <FavoriteButton
+              propertyId={property.id}
+              size="lg"
+              className="flex-shrink-0"
+            />
+          </div>
           <div className="flex items-center gap-4 pb-6 border-b border-[var(--border)] mb-8 flex-wrap">
             {property.reviewCount > 0 && (
               <span className="flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-bold">

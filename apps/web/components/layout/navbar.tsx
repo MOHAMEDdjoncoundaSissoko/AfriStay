@@ -45,6 +45,12 @@ export function Navbar() {
               <Link href="/traveler/bookings" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 transition-colors">
                 Mes réservations
               </Link>
+
+              <Link href="/traveler/favorites" className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 transition-colors">
+                <i className="fa-regular fa-heart" />
+                <span>Favoris</span>
+              </Link>
+
               <Link href="/host/dashboard" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 transition-colors">
                 Tableau de bord
               </Link>
