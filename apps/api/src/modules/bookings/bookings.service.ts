@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class BookingsService {
-  constructor(private prisma: PrismaService) {}
+  //constructor(private prisma: PrismaService) {}
+  constructor(
+  private prisma: PrismaService,
+  private notificationsService: NotificationsService,) {}
 
   async create(userId: string, dto: CreateBookingDto) {
     const { propertyId, checkInDate, checkOutDate, numberOfGuests } = dto;
@@ -94,6 +98,22 @@ export class BookingsService {
         traveler: { select: { id: true, firstName: true, lastName: true, email: true } },
       },
     });
+
+    // Créer une notification pour l'hôte
+    await this.notificationsService.create(
+      booking.property.hostId,
+      'BOOKING_REQUEST',
+      'Nouvelle demande de réservation',
+      `${booking.traveler.firstName} ${booking.traveler.lastName} souhaite réserver ${booking.property.title}`,
+      {
+        propertyId: booking.property.id,
+        propertyTitle: booking.property.title,
+        bookingId: booking.id,
+        amount: booking.totalAmount,
+        checkIn: booking.checkInDate,
+        checkOut: booking.checkOutDate,
+      },
+    );
 
     // Créer le paiement
     await this.prisma.payment.create({

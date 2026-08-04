@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { VerifiedBadge } from '@/components/shared/verified-badge';
+import NotificationBell from '@/components/shared/notification-bell';
 
 export function Navbar() {
   const [user, setUser] = useState<{ firstName: string; avatarUrl?: string | null; isVerified?: boolean } | null>(null);
@@ -50,6 +51,8 @@ export function Navbar() {
                 <i className="fa-regular fa-heart" />
                 <span>Favoris</span>
               </Link>
+              
+              <NotificationBell />
 
               <Link href="/host/dashboard" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 transition-colors">
                 Tableau de bord

@@ -10,6 +10,7 @@ import { ReferencesController } from './modules/properties/references.controller
 import { AdminModule } from './modules/admin/admin.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { FavoritesModule } from './modules/favorites/favorites.module';
     AdminModule,
     ReviewsModule,
     FavoritesModule,
+    NotificationsModule,
   ],
   controllers: [ReferencesController], // <-- AJOUTE CETTE LIGNE
 })
