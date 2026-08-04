@@ -216,6 +216,7 @@ model User {
   @@map("users")
 
   verifications UserVerification[]
+  refreshTokens     RefreshToken[]
 }
 
 // ============================================================
@@ -542,4 +543,17 @@ model AdminLog {
   @@index([entityType, entityId])
   @@index([action])
   @@map("admin_logs")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
 }

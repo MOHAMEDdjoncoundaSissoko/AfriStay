@@ -25,6 +25,7 @@ export default function LoginPage() {
 
       // Sauvegarder le token et l'utilisateur
       localStorage.setItem('afristay_token', data.accessToken);
+      localStorage.setItem('afristay_refresh_token', (data as any).refreshToken);
       localStorage.setItem('afristay_user', JSON.stringify(data.user));
 
       router.push('/');

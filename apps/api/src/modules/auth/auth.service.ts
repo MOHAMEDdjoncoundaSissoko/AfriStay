@@ -1,39 +1,35 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
-    private jwt: JwtService,
-    private config: ConfigService,
+    private jwtService: JwtService,
   ) {}
 
   async register(dto: RegisterDto) {
-    // Vérifier si l'email existe déjà
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
     if (existing) {
-      throw new ConflictException('Cet email est déjà utilisé');
+      throw new UnauthorizedException('Cet email est déjà utilisé');
     }
 
-    // Hasher le mot de passe
-    const hash = await bcrypt.hash(dto.password, 12);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    // Créer l'utilisateur
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
-        phone: dto.phone || null,
-        passwordHash: hash,
+        passwordHash,
         firstName: dto.firstName,
         lastName: dto.lastName,
+        phone: dto.phone || null,
         roles: ['TRAVELER'],
       },
       select: {
@@ -41,86 +37,114 @@ export class AuthService {
         email: true,
         firstName: true,
         lastName: true,
+        phone: true,
         roles: true,
-        createdAt: true,
+        avatarUrl: true,
+        isVerified: true,
       },
     });
 
-    // Générer les tokens
-    const tokens = this.generateTokens(user.id, user.email, user.roles);
-    return { user, ...tokens };
+    const tokens = await this.generateTokens(user.id, user.email, user.roles);
+    await this.storeRefreshToken(user.id, tokens.refreshToken);
+
+    return {
+      user,
+      ...tokens,
+    };
   }
 
   async login(dto: LoginDto) {
-    // Trouver l'utilisateur
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    if (!user) {
+
+    if (!user || !user.isActive) {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
 
-    // Vérifier le mot de passe
-    const isValid = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!isValid) {
+    const valid = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!valid) {
       throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
 
-    // Générer les tokens
-    const tokens = this.generateTokens(user.id, user.email, user.roles);
+    const tokens = await this.generateTokens(user.id, user.email, user.roles);
+    await this.storeRefreshToken(user.id, tokens.refreshToken);
+
     return {
       user: {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        phone: user.phone,
         roles: user.roles,
         avatarUrl: user.avatarUrl,
+        isVerified: user.isVerified,
       },
       ...tokens,
     };
   }
 
-  private generateTokens(userId: string, email: string, roles: string[]) {
+  async refresh(dto: RefreshTokenDto) {
+    // Vérifier que le refresh token existe en base et n'est pas expiré
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { token: dto.refreshToken },
+      include: { user: true },
+    });
+
+    if (!stored || stored.expiresAt < new Date()) {
+      // Supprimer le token expiré s'il existe
+      if (stored) {
+        await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+      }
+      throw new UnauthorizedException('Refresh token invalide ou expiré');
+    }
+
+    // Supprimer l'ancien refresh token (rotation)
+    await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+
+    // Générer un nouveau pair de tokens
+    const tokens = await this.generateTokens(
+      stored.user.id,
+      stored.user.email,
+      stored.user.roles,
+    );
+    await this.storeRefreshToken(stored.user.id, tokens.refreshToken);
+
+    return tokens;
+  }
+
+  async logout(userId: string, refreshToken: string) {
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId, token: refreshToken },
+    });
+  }
+
+  async logoutAll(userId: string) {
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+  }
+
+  // --- Privé ---
+
+  private async generateTokens(userId: string, email: string, roles: string[]) {
     const payload = { sub: userId, email, roles };
 
-    const accessToken = this.jwt.sign(payload, {
-      secret: this.config.get<string>('JWT_ACCESS_SECRET'),
-      expiresIn: '24h',
-    });
-
-    const refreshToken = this.jwt.sign(payload, {
-      secret: this.config.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: '7d',
-    });
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, { expiresIn: '15m' }),
+      this.jwtService.signAsync(payload, { expiresIn: '7d' }),
+    ]);
 
     return { accessToken, refreshToken };
   }
 
-    async updateProfile(userId: string, data: { firstName?: string; lastName?: string; phone?: string; bio?: string; avatarUrl?: string; birthDate?: string; countryOfResidence?: string }) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...(data.firstName && { firstName: data.firstName }),
-        ...(data.lastName && { lastName: data.lastName }),
-        ...(data.phone && { phone: data.phone }),
-        ...(data.bio && { bio: data.bio }),
-        ...(data.avatarUrl && { avatarUrl: data.avatarUrl }),
-        ...(data.birthDate && { birthDate: new Date(data.birthDate) }),
-        ...(data.countryOfResidence && { countryOfResidence: data.countryOfResidence }),
-      },
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, bio: true, avatarUrl: true, roles: true, isVerified: true, birthDate: true, countryOfResidence: true },
-    });
-  }
+  private async storeRefreshToken(userId: string, token: string) {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
 
-  async submitVerification(userId: string, documentType: string, documentUrl: string) {
-    // Supprimer les anciennes demandes en attente
-    await this.prisma.userVerification.deleteMany({
-      where: { userId, status: 'PENDING' }
-    });
-
-    return this.prisma.userVerification.create({
-      data: { userId, documentType, documentUrl }
+    await this.prisma.refreshToken.create({
+      data: { userId, token, expiresAt },
     });
   }
 }
