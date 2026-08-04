@@ -8,10 +8,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { ReplyReviewDto } from './dto/reply-review.dto';
 import { Prisma } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReviewsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async createReview(reviewerId: string, dto: CreateReviewDto) {
     // Trouver une réservation terminée de cet utilisateur SANS avis
@@ -50,6 +54,15 @@ export class ReviewsService {
     // Mettre à jour la note moyenne du logement
     await this.updatePropertyRating(booking.propertyId);
 
+    // Notification hôte
+    await this.notificationsService.create(
+      booking.property.hostId,
+      'NEW_REVIEW',
+      'Nouvel avis',
+      `Nouvel avis de ${dto.rating} étoiles sur ${booking.property.title || 'votre logement'}`,
+      { propertyId: booking.propertyId, reviewId: review.id },
+    );
+
     return review;
   }
 
@@ -85,13 +98,25 @@ export class ReviewsService {
       throw new BadRequestException('Vous avez déjà répondu à cet avis');
     }
 
-    return this.prisma.review.update({
+        const updated = await this.prisma.review.update({
       where: { id: reviewId },
       data: {
         hostReply: dto.reply,
         hostRepliedAt: new Date(),
       },
+      include: { reviewer: { select: { id: true, firstName: true, lastName: true } } },
     });
+
+    // Notification voyageur
+    await this.notificationsService.create(
+      updated.reviewerId,
+      'REVIEW_REPLY',
+      'Réponse à votre avis',
+      `L'hôte a répondu à votre avis`,
+      { propertyId: review.propertyId, reviewId },
+    );
+
+    return updated;
   }
 
   async canUserReview(userId: string, propertyId: string): Promise<boolean> {

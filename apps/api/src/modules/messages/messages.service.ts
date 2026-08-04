@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
 import { SendMessageDto } from './dto/send-message.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MessagesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async createConversation(userId: string, dto: CreateConversationDto) {
     // 1. Vérifier que le logement existe et récupérer l'hôte
@@ -116,6 +120,15 @@ export class MessagesService {
     });
     if (!participant) throw new ForbiddenException('Accès interdit');
 
+    // Trouver l'autre participant pour la notification
+    const otherParticipant = await this.prisma.conversationParticipant.findFirst({
+      where: {
+        conversationId,
+        userId: { not: userId },
+      },
+      include: { user: { select: { id: true, firstName: true } } },
+    });
+
     const message = await this.prisma.message.create({
       data: {
         conversationId,
@@ -131,6 +144,17 @@ export class MessagesService {
       where: { id: conversationId },
       data: { lastMessageAt: new Date() }
     });
+
+    // Notification pour l'autre participant
+    if (otherParticipant) {
+      await this.notificationsService.create(
+        otherParticipant.userId,
+        'NEW_MESSAGE',
+        'Nouveau message',
+        `${message.sender.firstName} : ${dto.content.substring(0, 80)}${dto.content.length > 80 ? '...' : ''}`,
+        { conversationId },
+      );
+    }
 
     return message;
   }

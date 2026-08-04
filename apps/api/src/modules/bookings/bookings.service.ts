@@ -235,15 +235,19 @@ export class BookingsService {
   }
 
   async accept(bookingId: string, hostId: string) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        traveler: { select: { firstName: true, lastName: true } },
+        property: { select: { title: true } },
+      },
+    });
     if (!booking) throw new NotFoundException('Réservation non trouvée');
     
-    // Vérifier que c'est bien l'hôte de CE logement
     const property = await this.prisma.property.findUnique({ where: { id: booking.propertyId } });
     if (property?.hostId !== hostId) throw new ForbiddenException('Seul l\'hôte peut valider');
     if (booking.status !== 'PENDING') throw new BadRequestException('Cette réservation n\'est plus en attente');
 
-    // Valider la réservation et le paiement
     await this.prisma.booking.update({
       where: { id: bookingId },
       data: { status: 'CONFIRMED' },
@@ -254,37 +258,63 @@ export class BookingsService {
       data: { status: 'SUCCESS', paidAt: new Date() },
     });
 
+    // Notification voyageur
+    await this.notificationsService.create(
+      booking.travelerId,
+      'BOOKING_CONFIRMED',
+      'Réservation confirmée',
+      `${property?.title || 'Votre logement'} a confirmé votre réservation`,
+      { bookingId, propertyId: booking.propertyId },
+    );
+
     return { success: true, message: 'Réservation acceptée' };
   }
 
   async reject(bookingId: string, hostId: string) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        traveler: { select: { firstName: true, lastName: true } },
+        property: { select: { title: true } },
+      },
+    });
     if (!booking) throw new NotFoundException('Réservation non trouvée');
 
     const property = await this.prisma.property.findUnique({ where: { id: booking.propertyId } });
     if (property?.hostId !== hostId) throw new ForbiddenException('Seul l\'hôte peut refuser');
     if (booking.status !== 'PENDING') throw new BadRequestException('Cette réservation n\'est plus en attente');
 
-    // Refuser la réservation
     await this.prisma.booking.update({
       where: { id: bookingId },
       data: { status: 'CANCELLED', cancellationReason: 'Refusé par l\'hôte', cancelledAt: new Date() },
     });
 
-    // Libérer les dates bloquées
     await this.prisma.propertyAvailability.deleteMany({ where: { bookingId } });
 
-    // Annuler le paiement
     await this.prisma.payment.updateMany({
       where: { bookingId },
       data: { status: 'REFUNDED', refundedAt: new Date() },
     });
 
+    // Notification voyageur
+    await this.notificationsService.create(
+      booking.travelerId,
+      'BOOKING_REJECTED',
+      'Réservation refusée',
+      `Votre réservation pour ${booking.property.title || 'ce logement'} a été refusée par l'hôte`,
+      { bookingId, propertyId: booking.propertyId },
+    );
+
     return { success: true, message: 'Réservation refusée' };
   }
 
   async cancel(bookingId: string, userId: string, reason?: string) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: {
+        property: { select: { title: true, hostId: true } },
+      },
+    });
     if (!booking) throw new NotFoundException('Réservation non trouvée');
     if (booking.travelerId !== userId) throw new ForbiddenException('Non autorisé');
     if (booking.status === 'CANCELLED' || booking.status === 'COMPLETED') {
@@ -296,16 +326,21 @@ export class BookingsService {
       data: { status: 'CANCELLED', cancellationReason: reason || null, cancelledAt: new Date() },
     });
 
-    // Libérer les dates
-    await this.prisma.propertyAvailability.deleteMany({
-      where: { bookingId },
-    });
+    await this.prisma.propertyAvailability.deleteMany({ where: { bookingId } });
 
-    // Rembourser le paiement
     await this.prisma.payment.updateMany({
       where: { bookingId },
       data: { status: 'REFUNDED', refundedAt: new Date() },
     });
+
+    // Notification hôte
+    await this.notificationsService.create(
+      booking.property.hostId,
+      'BOOKING_CANCELLED',
+      'Réservation annulée',
+      `Une réservation pour ${booking.property.title || 'votre logement'} a été annulée`,
+      { bookingId, propertyId: booking.propertyId },
+    );
 
     return { success: true, message: 'Réservation annulée, remboursement en cours' };
   }
