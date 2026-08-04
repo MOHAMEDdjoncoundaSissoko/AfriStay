@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { apiFetch } from '@/lib/api/client';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 const ROLE_OPTIONS = ['TRAVELER', 'HOST', 'ADMIN'];
 
 export default function AdminUsers() {
@@ -16,15 +16,20 @@ export default function AdminUsers() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
+    setMessage('');
     try {
+      const token = localStorage.getItem('afristay_token');
       const params = new URLSearchParams({ page: String(page), limit: '20' });
       if (search) params.set('search', search);
-      const res = await apiFetch(`/admin/users?${params}`);
+      const res = await fetch(`${API_URL}/api/admin/users?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(`Erreur ${res.status}`);
       const json = await res.json();
       setUsers(json.data || []);
       setTotal(json.meta?.total || 0);
-    } catch {
-      setMessage('Erreur de chargement');
+    } catch (err: any) {
+      setMessage(err?.message || 'Erreur');
     } finally {
       setLoading(false);
     }
@@ -37,30 +42,32 @@ export default function AdminUsers() {
   const updateRole = async (userId: string, roles: string[]) => {
     setActionLoading(userId);
     try {
-      await apiFetch(`/admin/users/${userId}/role`, {
+      const token = localStorage.getItem('afristay_token');
+      await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ roles }),
       });
       setMessage('Rôle mis à jour');
       fetchUsers();
     } catch {
-      setMessage('Erreur lors de la mise à jour');
+      setMessage('Erreur');
     } finally {
       setActionLoading(null);
       setTimeout(() => setMessage(''), 3000);
     }
   };
 
-  const toggleStatus = async (userId: string, currentStatus: boolean) => {
+  const toggleStatus = async (userId: string, isActive: boolean) => {
     setActionLoading(userId);
     try {
-      await apiFetch(`/admin/users/${userId}/status`, {
+      const token = localStorage.getItem('afristay_token');
+      await fetch(`${API_URL}/api/admin/users/${userId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: currentStatus ? 'DISABLED' : 'ACTIVE' }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: isActive ? 'DISABLED' : 'ACTIVE' }),
       });
-      setMessage(currentStatus ? 'Utilisateur désactivé' : 'Utilisateur activé');
+      setMessage(isActive ? 'Utilisateur désactivé' : 'Utilisateur activé');
       fetchUsers();
     } catch {
       setMessage('Erreur');
@@ -85,7 +92,9 @@ export default function AdminUsers() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Utilisateurs</h1>
-          <p className="text-sm text-gray-500 mt-1">{total} utilisateur{total > 1 ? 's' : ''}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {total} utilisateur{total > 1 ? 's' : ''}
+          </p>
         </div>
         <div className="relative">
           <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
@@ -108,7 +117,6 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {/* Tableau */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -142,8 +150,7 @@ export default function AdminUsers() {
               ) : (
                 users.map((u: any) => {
                   const initials = (u.firstName?.[0] || '') + (u.lastName?.[0] || '');
-                  const isActionLoading = actionLoading === u.id;
-
+                  const isLoading = actionLoading === u.id;
                   return (
                     <tr key={u.id} className="hover:bg-gray-50/50">
                       <td className="px-6 py-4">
@@ -164,7 +171,7 @@ export default function AdminUsers() {
                           {ROLE_OPTIONS.map((role) => (
                             <button
                               key={role}
-                              disabled={isActionLoading}
+                              disabled={isLoading}
                               onClick={() => toggleRole(u.id, u.roles || [], role)}
                               className={`text-[10px] font-medium px-2 py-0.5 rounded cursor-pointer transition ${
                                 u.roles?.includes(role)
@@ -204,7 +211,7 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
-                          disabled={isActionLoading}
+                          disabled={isLoading}
                           onClick={() => toggleStatus(u.id, u.isActive !== false)}
                           className={`text-xs font-medium px-3 py-1.5 rounded-lg transition ${
                             u.isActive !== false
@@ -212,7 +219,7 @@ export default function AdminUsers() {
                               : 'text-green-600 hover:bg-green-50'
                           }`}
                         >
-                          {isActionLoading ? (
+                          {isLoading ? (
                             <i className="fas fa-spinner fa-spin" />
                           ) : u.isActive !== false ? (
                             'Désactiver'
@@ -229,7 +236,6 @@ export default function AdminUsers() {
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
             <p className="text-sm text-gray-500">

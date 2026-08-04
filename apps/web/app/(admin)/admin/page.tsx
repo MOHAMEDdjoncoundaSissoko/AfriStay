@@ -1,34 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiFetch } from '@/lib/api/client';
 import { formatPrice } from '@/lib/utils/format-price';
 
-interface DashboardData {
-  totalUsers: number;
-  totalProperties: number;
-  totalBookings: number;
-  monthlyRevenue: number;
-  recentUsers: any[];
-  recentBookings: any[];
-  pendingVerifications: number;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
+async function adminFetch(url: string) {
+  const token = localStorage.getItem('afristay_token');
+  const res = await fetch(`${API_URL}${url}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Erreur ${res.status}`);
+  return res.json();
 }
 
 export default function AdminDashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    apiFetch('/admin/dashboard')
-      .then((data: any) => {
-        setData(data);
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Erreur de chargement');
-        setLoading(false);
-      });
+    adminFetch('/api/admin/dashboard')
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => { setError('Erreur de chargement'); setLoading(false); });
   }, []);
 
   if (loading) {
@@ -47,36 +41,14 @@ export default function AdminDashboard() {
   }
 
   if (error || !data) {
-    return (
-      <div className="bg-red-50 text-red-600 p-6 rounded-xl">{error || 'Aucune donnée'}</div>
-    );
+    return <div className="bg-red-50 text-red-600 p-6 rounded-xl">{error || 'Aucune donnée'}</div>;
   }
 
   const stats = [
-    {
-      label: 'Utilisateurs',
-      value: data.totalUsers.toLocaleString(),
-      icon: 'fas fa-users',
-      lightColor: 'bg-blue-50 text-blue-600',
-    },
-    {
-      label: 'Logements',
-      value: data.totalProperties.toLocaleString(),
-      icon: 'fas fa-building',
-      lightColor: 'bg-green-50 text-green-600',
-    },
-    {
-      label: 'Réservations',
-      value: data.totalBookings.toLocaleString(),
-      icon: 'fas fa-calendar-check',
-      lightColor: 'bg-orange-50 text-orange-600',
-    },
-    {
-      label: 'Revenus du mois',
-      value: formatPrice(data.monthlyRevenue),
-      icon: 'fas fa-money-bill-wave',
-      lightColor: 'bg-purple-50 text-purple-600',
-    },
+    { label: 'Utilisateurs', value: data.totalUsers.toLocaleString(), icon: 'fas fa-users', lightColor: 'bg-blue-50 text-blue-600' },
+    { label: 'Logements', value: data.totalProperties.toLocaleString(), icon: 'fas fa-building', lightColor: 'bg-green-50 text-green-600' },
+    { label: 'Réservations', value: data.totalBookings.toLocaleString(), icon: 'fas fa-calendar-check', lightColor: 'bg-orange-50 text-orange-600' },
+    { label: 'Revenus du mois', value: formatPrice(data.monthlyRevenue), icon: 'fas fa-money-bill-wave', lightColor: 'bg-purple-50 text-purple-600' },
   ];
 
   return (
@@ -84,9 +56,7 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Vue d&apos;ensemble de la plateforme
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Vue d&apos;ensemble de la plateforme</p>
         </div>
         {data.pendingVerifications > 0 && (
           <span className="bg-yellow-100 text-yellow-800 text-sm font-medium px-3 py-1.5 rounded-full">
@@ -98,10 +68,7 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm"
-          >
+          <div key={stat.label} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-gray-500">{stat.label}</span>
               <div className={`w-10 h-10 rounded-lg ${stat.lightColor} flex items-center justify-center`}>
@@ -114,7 +81,6 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Derniers utilisateurs */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">Derniers utilisateurs</h2>
@@ -129,25 +95,12 @@ export default function AdminDashboard() {
                     {(u.firstName?.[0] || '') + (u.lastName?.[0] || '')}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {u.firstName} {u.lastName}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{u.firstName} {u.lastName}</p>
                     <p className="text-xs text-gray-400 truncate">{u.email}</p>
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
                     {u.roles?.map((r: string) => (
-                      <span
-                        key={r}
-                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                          r === 'ADMIN'
-                            ? 'bg-red-100 text-red-700'
-                            : r === 'HOST'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {r}
-                      </span>
+                      <span key={r} className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${r === 'ADMIN' ? 'bg-red-100 text-red-700' : r === 'HOST' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{r}</span>
                     ))}
                   </div>
                 </div>
@@ -156,7 +109,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Dernières réservations — CORRECTION : c'est "traveler" pas "user" */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">Dernières réservations</h2>
@@ -168,26 +120,10 @@ export default function AdminDashboard() {
               data.recentBookings.map((b: any) => (
                 <div key={b.id} className="px-6 py-3">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-gray-900 truncate mr-2">
-                      {b.property?.title || 'Logement supprimé'}
-                    </p>
-                    <span
-                      className={`text-[10px] font-medium px-2 py-0.5 rounded flex-shrink-0 ${
-                        b.status === 'CONFIRMED'
-                          ? 'bg-green-100 text-green-700'
-                          : b.status === 'PENDING'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : b.status === 'CANCELLED'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {b.status}
-                    </span>
+                    <p className="text-sm font-medium text-gray-900 truncate mr-2">{b.property?.title || 'Logement supprimé'}</p>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded flex-shrink-0 ${b.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' : b.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : b.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{b.status}</span>
                   </div>
-                  <p className="text-xs text-gray-400">
-                    {b.traveler?.firstName} {b.traveler?.lastName} · {formatPrice(b.totalAmount)}
-                  </p>
+                  <p className="text-xs text-gray-400">{b.traveler?.firstName} {b.traveler?.lastName} · {formatPrice(b.totalAmount)}</p>
                 </div>
               ))
             )}

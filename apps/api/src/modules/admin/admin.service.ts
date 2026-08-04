@@ -31,23 +31,13 @@ export class AdminService {
       this.prisma.property.count(),
       this.prisma.booking.count(),
       this.prisma.booking.aggregate({
-        where: {
-          status: 'CONFIRMED',
-          createdAt: { gte: startOfMonth },
-        },
+        where: { status: 'CONFIRMED', createdAt: { gte: startOfMonth } },
         _sum: { commissionAmount: true },
       }),
       this.prisma.user.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          email: true,
-          roles: true,
-          createdAt: true,
-        },
+        select: { id: true, firstName: true, lastName: true, email: true, roles: true, createdAt: true },
       }),
       this.prisma.booking.findMany({
         take: 5,
@@ -57,9 +47,7 @@ export class AdminService {
           property: { select: { title: true } },
         } as any,
       }),
-      this.prisma.userVerification.count({
-        where: { status: 'PENDING' },
-      }),
+      this.prisma.userVerification.count({ where: { status: 'PENDING' } }),
     ]);
 
     return {
@@ -112,18 +100,13 @@ export class AdminService {
           createdAt: true,
           _count: { select: { properties: true, bookings: true } },
         },
-      }),
+      }) as any,
       this.prisma.user.count({ where }),
     ]);
 
     return {
       data: users,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 
@@ -137,11 +120,7 @@ export class AdminService {
       select: { id: true, firstName: true, lastName: true, email: true, roles: true },
     });
 
-    await this.logAction(adminId, 'UPDATE_USER_ROLE', 'USER', userId, {
-      oldRoles: user.roles,
-      newRoles: dto.roles,
-    });
-
+    await this.logAction(adminId, 'UPDATE_USER_ROLE', 'USER', userId, { oldRoles: user.roles, newRoles: dto.roles });
     return updated;
   }
 
@@ -149,17 +128,13 @@ export class AdminService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable');
 
-    const isActive = dto.status === 'ACTIVE';
     const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: { isActive },
+      data: { isActive: dto.status === 'ACTIVE' },
       select: { id: true, firstName: true, lastName: true, isActive: true },
     });
 
-    await this.logAction(adminId, 'TOGGLE_USER_STATUS', 'USER', userId, {
-      newStatus: dto.status,
-    });
-
+    await this.logAction(adminId, 'TOGGLE_USER_STATUS', 'USER', userId, { newStatus: dto.status });
     return updated;
   }
 
@@ -171,12 +146,8 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (query.status) {
-      where.status = query.status;
-    }
-    if (query.search) {
-      where.title = { contains: query.search, mode: 'insensitive' };
-    }
+    if (query.status) where.status = query.status;
+    if (query.search) where.title = { contains: query.search, mode: 'insensitive' };
 
     const [properties, total] = await Promise.all([
       this.prisma.property.findMany({
@@ -201,14 +172,8 @@ export class AdminService {
     };
   }
 
-  async updatePropertyStatus(
-    propertyId: string,
-    dto: UpdatePropertyStatusDto,
-    adminId: string,
-  ) {
-    const property = await this.prisma.property.findUnique({
-      where: { id: propertyId },
-    });
+  async updatePropertyStatus(propertyId: string, dto: UpdatePropertyStatusDto, adminId: string) {
+    const property = await this.prisma.property.findUnique({ where: { id: propertyId } });
     if (!property) throw new NotFoundException('Logement introuvable');
 
     const updated = await this.prisma.property.update({
@@ -216,16 +181,11 @@ export class AdminService {
       data: { status: dto.status as any },
     });
 
-    await this.logAction(adminId, 'UPDATE_PROPERTY_STATUS', 'PROPERTY', propertyId, {
-      oldStatus: property.status,
-      newStatus: dto.status,
-      reason: dto.reason,
-    });
-
+    await this.logAction(adminId, 'UPDATE_PROPERTY_STATUS', 'PROPERTY', propertyId, { oldStatus: property.status, newStatus: dto.status, reason: dto.reason });
     return updated;
   }
 
-  /* ─── VÉRIFICATIONS D'IDENTITÉ ─── */
+  /* ─── VÉRIFICATIONS ─── */
 
   async getVerifications(query: AdminQueryDto) {
     const page = Math.max(1, parseInt(query.page || '1'));
@@ -233,9 +193,7 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (query.status) {
-      where.status = query.status;
-    }
+    if (query.status) where.status = query.status;
 
     const [verifications, total] = await Promise.all([
       this.prisma.userVerification.findMany({
@@ -244,15 +202,7 @@ export class AdminService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              isVerified: true,
-            },
-          },
+          user: { select: { id: true, firstName: true, lastName: true, email: true, isVerified: true } },
         },
       }),
       this.prisma.userVerification.count({ where }),
@@ -264,51 +214,27 @@ export class AdminService {
     };
   }
 
-  async reviewVerification(
-    verificationId: string,
-    dto: ReviewVerificationDto,
-    adminId: string,
-  ) {
-    const verification = await this.prisma.userVerification.findUnique({
-      where: { id: verificationId },
-    });
+  async reviewVerification(verificationId: string, dto: ReviewVerificationDto, adminId: string) {
+    const verification = await this.prisma.userVerification.findUnique({ where: { id: verificationId } });
     if (!verification) throw new NotFoundException('Vérification introuvable');
 
     const updated = await this.prisma.userVerification.update({
       where: { id: verificationId },
-      data: {
-        status: dto.status as any,
-        rejectReason: dto.reason || null,
-        reviewedAt: new Date(),
-      },
+      data: { status: dto.status as any, rejectReason: dto.reason || null, reviewedAt: new Date() },
       include: { user: { select: { id: true, isVerified: true } } },
     });
 
     if (dto.status === 'APPROVED') {
-      await this.prisma.user.update({
-        where: { id: verification.userId },
-        data: { isVerified: true },
-      });
+      await this.prisma.user.update({ where: { id: verification.userId }, data: { isVerified: true } });
     }
 
-    await this.logAction(adminId, 'REVIEW_VERIFICATION', 'VERIFICATION', verificationId, {
-      status: dto.status,
-      reason: dto.reason,
-      userId: verification.userId,
-    });
-
+    await this.logAction(adminId, 'REVIEW_VERIFICATION', 'VERIFICATION', verificationId, { status: dto.status, reason: dto.reason, userId: verification.userId });
     return updated;
   }
 
   /* ─── LOG ─── */
 
-  private async logAction(
-    adminId: string,
-    action: string,
-    entityType: string,
-    entityId: string,
-    details: any,
-  ) {
+  private async logAction(adminId: string, action: string, entityType: string, entityId: string, details: any) {
     try {
       await this.prisma.adminLog.create({
         data: {
