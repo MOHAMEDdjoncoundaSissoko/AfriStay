@@ -6,6 +6,7 @@ import { Navbar } from '@/components/layout/navbar';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Footer } from '@/components/layout/footer';
 import { apiRequest } from '@/lib/api/client';
+import BecomeHostLanding from '@/components/host/become-host-landing';
 
 const STEPS = ['Informations', 'Localisation', 'Équipements', 'Prix & Capacité'];
 
@@ -82,13 +83,12 @@ export default function BecomeHostPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Données dynamiques
   const [countries, setCountries] = useState<{ id: string; name: string; code: string; flagEmoji: string }[]>([]);
   const [cities, setCities] = useState<{ id: string; name: string; slug: string; countryId: string }[]>([]);
   const [propertyTypes, setPropertyTypes] = useState<{ id: string; name: string; icon: string }[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  // Charger les vrais IDs depuis la base de données
+  // ✅ TOUS les hooks avant le return conditionnel
   useEffect(() => {
     async function fetchData() {
       try {
@@ -97,7 +97,6 @@ export default function BecomeHostPage() {
         setCities(data.cities);
         setPropertyTypes(data.propertyTypes);
 
-        // Si on est en mode édition, charger les données du logement
         if (editId && editId !== 'new') {
           const prop = await apiRequest<any>(`/api/properties/${editId}`);
           setForm({
@@ -121,8 +120,7 @@ export default function BecomeHostPage() {
             smokingAllowed: prop.smokingAllowed,
             amenitySlugs: prop.amenities?.map((a: any) => a.amenity.slug) || [],
           });
-          
-          // Si le logement a des images, on les charge dans l'upload
+
           if (prop.images) {
             setImageUrls(prop.images.map((img: any) => img.url));
           }
@@ -134,11 +132,15 @@ export default function BecomeHostPage() {
     fetchData();
   }, [editId]);
 
+  // ✅ Le return conditionnel APRÈS tous les hooks
+  if (!editId) {
+    return <BecomeHostLanding />;
+  }
+
   const filteredCities = cities.filter((c) => c.countryId === form.countryId);
 
   function update(field: keyof PropertyForm, value: any) {
     setForm((prev) => ({ ...prev, [field]: value }));
-    // Si on change le pays, réinitialiser la ville
     if (field === 'countryId') {
       setForm((prev) => ({ ...prev, cityId: '' }));
     }
@@ -154,7 +156,6 @@ export default function BecomeHostPage() {
   }
 
   function nextStep() {
-    // Validation basique du step courant
     if (step === 0 && (!form.title || !form.description || !form.propertyTypeId)) {
       setError('Remplissez tous les champs obligatoires');
       return;
@@ -162,9 +163,6 @@ export default function BecomeHostPage() {
     if (step === 1 && (!form.countryId || !form.cityId || !form.address)) {
       setError('Remplissez tous les champs obligatoires');
       return;
-    }
-    if (step === 2) {
-      // Pas d'erreur pour les équipements (optionnel)
     }
     setError('');
     setStep(step + 1);
@@ -190,7 +188,7 @@ export default function BecomeHostPage() {
     try {
       const payload = {
         ...form,
-        imageUrls: imageUrls, // On ajoute les photos de Cloudinary
+        imageUrls: imageUrls,
         pricePerWeek: form.pricePerWeek ? parseInt(form.pricePerWeek) : null,
         pricePerMonth: form.pricePerMonth ? parseInt(form.pricePerMonth) : null,
       };
@@ -221,14 +219,15 @@ export default function BecomeHostPage() {
       <Navbar />
       <main className="pt-[68px] min-h-screen" style={{ background: 'var(--bg)' }}>
         <div className="max-w-2xl mx-auto px-6 py-10">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold mb-2">{isEditMode ? 'Modifier votre logement' : 'Publiez votre logement'}</h1>
-            <p className="text-[var(--text-sec)]">{isEditMode ? 'Modifiez les informations de votre annonce.' : 'Remplissez les informations ci-dessous.'}</p>
-            <p className="text-[var(--text-sec)]">Remplissez les informations ci-dessous. Vous pourrez modifier votre annonce à tout moment.</p>
+            <p className="text-[var(--text-sec)]">
+              {isEditMode
+                ? 'Modifiez les informations de votre annonce.'
+                : 'Remplissez les informations ci-dessous. Vous pourrez modifier votre annonce à tout moment.'}
+            </p>
           </div>
 
-          {/* Progress bar */}
           <div className="flex items-center gap-2 mb-10">
             {STEPS.map((s, i) => (
               <div key={s} className="flex-1">
@@ -245,11 +244,10 @@ export default function BecomeHostPage() {
           )}
 
           <form onSubmit={handleSubmit}>
-            {/* ÉTAPE 1 : Informations de base */}
             {step === 0 && (
               <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
                 <div>
-                  <label className={labelClass}>Titre de l'annonce *</label>
+                  <label className={labelClass}>Titre de l&apos;annonce *</label>
                   <input
                     type="text"
                     value={form.title}
@@ -291,7 +289,6 @@ export default function BecomeHostPage() {
                   </div>
                 </div>
 
-                {/* Upload de photos */}
                 <div>
                   <label className={labelClass}>Photos de votre logement</label>
                   <p className="text-xs text-[var(--text-ter)] mb-3">La première photo sera utilisée comme image principale. Max 5 photos.</p>
@@ -300,7 +297,6 @@ export default function BecomeHostPage() {
               </div>
             )}
 
-            {/* ÉTAPE 2 : Localisation */}
             {step === 1 && (
               <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
                 <div>
@@ -379,7 +375,6 @@ export default function BecomeHostPage() {
               </div>
             )}
 
-            {/* ÉTAPE 3 : Équipements */}
             {step === 2 && (
               <div className="animate-[fadeIn_0.3s_ease]">
                 <p className="text-sm text-[var(--text-sec)] mb-5">Sélectionnez les équipements disponibles dans votre logement.</p>
@@ -424,7 +419,6 @@ export default function BecomeHostPage() {
               </div>
             )}
 
-            {/* ÉTAPE 4 : Prix et capacité */}
             {step === 3 && (
               <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
                 <div>
@@ -518,7 +512,6 @@ export default function BecomeHostPage() {
                   />
                 </div>
 
-                {/* Récapitulatif */}
                 <div className="bg-primary-light border border-primary/20 rounded-xl p-5 mt-6">
                   <h3 className="font-bold mb-3">Récapitulatif</h3>
                   <div className="space-y-2 text-sm">
@@ -547,7 +540,6 @@ export default function BecomeHostPage() {
               </div>
             )}
 
-            {/* Boutons de navigation */}
             <div className="flex justify-between mt-10 pt-6 border-t border-[var(--border)]">
               {step > 0 ? (
                 <button
@@ -577,7 +569,7 @@ export default function BecomeHostPage() {
                   disabled={loading}
                   className="px-8 py-3 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
                 >
-                {loading ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Publier mon logement'}
+                  {loading ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Publier mon logement'}
                 </button>
               )}
             </div>
