@@ -22,7 +22,7 @@ export function Navbar() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('afristay_token') : null;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-[var(--border)]">
+    <nav className="fixed top-0 left-0 right-0 z-[9999] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-[var(--border)]">
       <div className="max-w-7xl mx-auto px-6 h-[68px] flex items-center gap-6">
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <svg viewBox="0 0 28 28" className="w-7 h-7" fill="none">

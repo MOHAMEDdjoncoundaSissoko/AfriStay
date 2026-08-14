@@ -64,20 +64,35 @@ export default function Home() {
           </p>
 
           {/* Search bar */}
-          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-xl mx-auto flex">
-            <input
-              type="text"
-              placeholder="Où allez-vous ?"
-              className="flex-1 px-5 py-4 text-[var(--text)] outline-none text-[15px]"
+          {/* ✅ Un vrai formulaire HTML, pas besoin de useState ou useRouter */}
+          <form 
+            action="/search" 
+            method="GET"
+            className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-2xl mx-auto flex flex-col md:flex-row"
+          >
+            <input 
+              name="q"
+              type="text" 
+              placeholder="Où allez-vous ?" 
+              className="flex-1 px-5 py-4 text-[var(--text)] outline-none text-[15px] min-w-0" 
             />
-            <input
-              type="date"
-              className="hidden md:block px-4 py-4 border-l border-[var(--border)] text-[15px] outline-none"
+            <input 
+              name="checkIn"
+              type="date" 
+              className="hidden md:block px-4 py-4 border-l border-[var(--border)] text-[15px] outline-none text-[var(--text-sec)]" 
             />
-            <button className="px-6 bg-primary hover:bg-primary-hover transition-colors text-white text-lg">
+            <input 
+              name="checkOut"
+              type="date" 
+              className="hidden md:block px-4 py-4 border-l border-[var(--border)] text-[15px] outline-none text-[var(--text-sec)]" 
+            />
+            <button 
+              type="submit"
+              className="px-8 bg-primary hover:bg-primary-hover transition-colors text-white text-lg flex items-center justify-center"
+            >
               <i className="fa-solid fa-magnifying-glass" />
             </button>
-          </div>
+          </form>
 
           {/* Destination chips */}
           <div className="flex flex-wrap gap-3 mt-8 justify-center">
