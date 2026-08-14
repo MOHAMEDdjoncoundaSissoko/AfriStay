@@ -2,9 +2,16 @@ import Link from 'next/link';
 
 const CITIES = ['Abidjan', 'Dakar', 'Lagos', 'Accra', 'Cotonou', 'Bamako'];
 
+const HELP_LINKS = [
+  { label: "Centre d'aide", href: '/help' },
+  { label: 'Conditions générales', href: '/terms' },
+  { label: 'Confidentialité', href: '/privacy' },
+  { label: 'Contact', href: '/contact' },
+];
+
 export function Footer() {
   return (
-    <footer className="bg-white border-t border-[var(--border)] mt-24">
+    <footer className="bg-[var(--card)] border-t border-[var(--border)] mt-24">
       <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-12">
         {/* Brand */}
         <div>
@@ -30,9 +37,9 @@ export function Footer() {
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider mb-4">Assistance</h4>
           <div className="flex flex-col gap-2">
-            {['Centre d\'aide', 'Conditions générales', 'Confidentialité', 'Contact'].map((item) => (
-              <Link key={item} href="#" className="text-sm text-[var(--text-sec)] hover:text-primary transition-colors">
-                {item}
+            {HELP_LINKS.map((item) => (
+              <Link key={item.href} href={item.href} className="text-sm text-[var(--text-sec)] hover:text-primary transition-colors">
+                {item.label}
               </Link>
             ))}
           </div>
@@ -56,7 +63,7 @@ export function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6 border-t border-[var(--border)] flex justify-between items-center">
-        <p className="text-xs text-[var(--text-sec)]">2025 AfriStay. Tous droits réservés.</p>
+        <p className="text-xs text-[var(--text-sec)]">2026 AfriStay. Tous droits réservés.</p>
         <div className="flex gap-3">
           {['facebook-f', 'x-twitter', 'instagram', 'linkedin-in'].map((icon) => (
             <a key={icon} href="#" className="w-8 h-8 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--text-sec)] hover:bg-primary hover:text-white hover:border-primary transition-all text-xs">
