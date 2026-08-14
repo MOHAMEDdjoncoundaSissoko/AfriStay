@@ -88,7 +88,6 @@ export default function BecomeHostPage() {
   const [propertyTypes, setPropertyTypes] = useState<{ id: string; name: string; icon: string }[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
-  // ✅ TOUS les hooks avant le return conditionnel
   useEffect(() => {
     async function fetchData() {
       try {
@@ -132,7 +131,6 @@ export default function BecomeHostPage() {
     fetchData();
   }, [editId]);
 
-  // ✅ Le return conditionnel APRÈS tous les hooks
   if (!editId) {
     return <BecomeHostLanding />;
   }
@@ -173,8 +171,8 @@ export default function BecomeHostPage() {
     setStep(step - 1);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // ✅ Plus besoin de "e: React.FormEvent" ni de "e.preventDefault()"
+  async function handleSubmit() {
     setError('');
     setLoading(true);
 
@@ -243,7 +241,8 @@ export default function BecomeHostPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          {/* ✅ On remplace <form> par un simple <div> */}
+          <div>
             {step === 0 && (
               <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
                 <div>
@@ -564,16 +563,19 @@ export default function BecomeHostPage() {
                   <i className="fa-solid fa-arrow-right ml-2 text-sm" />
                 </button>
               ) : (
+                // ✅ Plus de "type='submit'", juste un onClick normal
                 <button
-                  type="submit"
+                  type="button"
                   disabled={loading}
+                  onClick={handleSubmit}
                   className="px-8 py-3 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
                 >
                   {loading ? 'Enregistrement...' : isEditMode ? 'Enregistrer les modifications' : 'Publier mon logement'}
                 </button>
               )}
             </div>
-          </form>
+          {/* ✅ Fermeture du div à la place du form */}
+          </div>
         </div>
       </main>
 

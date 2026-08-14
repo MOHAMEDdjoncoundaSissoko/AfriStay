@@ -6,18 +6,24 @@
 
 :root {
   --bg: #FAF7F2;
+  --bg-alt: #F0EBE3; /* Ajouté */
   --card: #FFFFFF;
   --text: #1F1F1F;
   --text-sec: #6B6B6B;
+  --text-ter: #9A9490; /* Ajouté */
   --border: #E8E2D9;
+  --primary-light: #FDE8E0; /* Ajouté */
 }
 
 .dark {
   --bg: #0F0F0F;
+  --bg-alt: #1A1A1A;
   --card: #1E1E1E;
   --text: #F5F0EB;
-  --text-sec: #A0A0A0;
-  --border: #2E2E2E;
+  --text-sec: #C4C0BB; /* Beaucoup plus clair pour être bien lisible */
+  --text-ter: #918C87; /* Rehaussé aussi pour les petits détails */
+  --border: #333030;
+  --primary-light: rgba(212, 82, 42, 0.2);
 }
 
 body {
