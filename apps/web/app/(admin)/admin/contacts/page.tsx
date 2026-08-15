@@ -32,7 +32,6 @@ export default function AdminContactsPage() {
         method: 'PATCH',
         body: { reply: replyText },
       });
-      // Met à jour la liste localement
       setContacts(contacts.map(c => c.id === selected.id ? { ...c, reply: replyText } : c));
       setSelected({ ...selected, reply: replyText });
       setReplyText('');
@@ -51,7 +50,7 @@ export default function AdminContactsPage() {
         {/* Liste des messages */}
         <div className="border border-[var(--border)] rounded-xl bg-[var(--card)] overflow-hidden flex flex-col">
           <div className="p-3 border-b border-[var(--border)] font-semibold text-sm bg-[var(--bg-alt)]">
-            ({contacts.length}) Messages
+            {contacts.length} Messages
           </div>
           <div className="flex-1 overflow-y-auto divide-y divide-[var(--border)]">
             {contacts.map((c) => (
@@ -75,7 +74,7 @@ export default function AdminContactsPage() {
           </div>
         </div>
 
-        <!-- Détail et Réponse -->
+        {/* Détail et Réponse */}
         <div className="lg:col-span-2 border border-[var(--border)] rounded-xl bg-[var(--card)] p-6 flex flex-col">
           {selected ? (
             <>

@@ -14,26 +14,30 @@ export default function ContactPage() {
     setLoading(true);
 
     const form = new FormData(e.currentTarget);
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('afristay_user') : null;
+    const userStr = typeof window !== 'undefined' ? localStorage.getItem('afristay_user') : null;
     let parsedUser = null;
-    if (userId) {
-      try { parsedUser = JSON.parse(userId); } catch {}
+    if (userStr) {
+      try { parsedUser = JSON.parse(userStr); } catch {}
     }
 
     const payload = {
-      firstName: parsedUser?.firstName || form.get('firstName'),
-      lastName: parsedUser?.lastName || form.get('lastName'),
-      email: parsedUser?.email || form.get('email'),
-      subject: form.get('subject'),
-      message: form.get('message'),
+      firstName: parsedUser?.firstName || form.get('firstName') || '',
+      lastName: parsedUser?.lastName || form.get('lastName') || '',
+      email: parsedUser?.email || form.get('email') || '',
+      subject: form.get('subject') || '',
+      message: form.get('message') || '',
       userId: parsedUser?.id || null,
     };
 
     try {
-      await apiRequest('/api/contact', { method: 'POST', body: payload });
+      await apiRequest('/api/contact', {
+        method: 'POST',
+        body: payload,
+      });
       setSent(true);
-    } catch (err) {
-      alert("Une erreur est survenue.");
+    } catch (err: any) {
+      console.error(err);
+      alert("Erreur : " + (err?.message || "Inconnue"));
     } finally {
       setLoading(false);
     }
@@ -63,20 +67,20 @@ export default function ContactPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1.5">Prénom</label>
-                      <input type="text" required placeholder="Marhem" className={inputClass} />
+                      <input type="text" name="firstName" required placeholder="Mohamed" className={inputClass} />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1.5">Nom</label>
-                      <input type="text" required placeholder="Sarceft" className={inputClass} />
+                      <input type="text" name="lastName" required placeholder="Sissoko" className={inputClass} />
                     </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1.5">Email</label>
-                    <input type="email" required placeholder="marhem@sarceft.com" className={inputClass} />
+                    <input type="email" name="email" required placeholder="mohamed@email.com" className={inputClass} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1.5">Sujet</label>
-                    <select required className={inputClass}>
+                    <select name="subject" required className={inputClass}>
                       <option value="">Sélectionnez un sujet</option>
                       <option>Problème de réservation</option>
                       <option>Question sur un paiement</option>
@@ -87,10 +91,14 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1.5">Message</label>
-                    <textarea required rows={5} placeholder="Décrivez votre demande..." className={inputClass + ' resize-none'} />
+                    <textarea name="message" required rows={5} placeholder="Décrivez votre demande..." className={inputClass + ' resize-none'} />
                   </div>
-                  <button type="submit" className="w-full py-3.5 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-colors">
-                    Envoyer le message
+                  <button 
+                    type="submit" 
+                    disabled={loading}
+                    className="w-full py-3.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+                  >
+                    {loading ? 'Envoi en cours...' : 'Envoyer le message'}
                   </button>
                 </form>
               )}
@@ -119,7 +127,7 @@ export default function ContactPage() {
                     <i className="fa-solid fa-location-dot text-primary mt-0.5" />
                     <div>
                       <p className="font-medium">Adresse</p>
-                      <p className="text-[var(--text-sec)]">Cocody, Abidjan, Côte d'Ivoire</p>
+                      <p className="text-[var(--text-sec)]">Cocody, Abidjan, Côte d&apos;Ivoire</p>
                     </div>
                   </div>
                 </div>
