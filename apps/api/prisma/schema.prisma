@@ -557,3 +557,16 @@ model RefreshToken {
   @@index([token])
   @@map("refresh_tokens")
 }
+
+model Contact {
+  id        String   @id @default(cuid())
+  userId    String?  
+  firstName String?
+  lastName  String?
+  email     String
+  subject   String
+  message   String
+  reply     String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

@@ -3,13 +3,40 @@
 import { useState } from 'react';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
+import { apiRequest } from '@/lib/api/client';
 
 export default function ContactPage() {
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSent(true);
+    setLoading(true);
+
+    const form = new FormData(e.currentTarget);
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('afristay_user') : null;
+    let parsedUser = null;
+    if (userId) {
+      try { parsedUser = JSON.parse(userId); } catch {}
+    }
+
+    const payload = {
+      firstName: parsedUser?.firstName || form.get('firstName'),
+      lastName: parsedUser?.lastName || form.get('lastName'),
+      email: parsedUser?.email || form.get('email'),
+      subject: form.get('subject'),
+      message: form.get('message'),
+      userId: parsedUser?.id || null,
+    };
+
+    try {
+      await apiRequest('/api/contact', { method: 'POST', body: payload });
+      setSent(true);
+    } catch (err) {
+      alert("Une erreur est survenue.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const inputClass = 'w-full px-4 py-3 border border-[var(--border)] rounded-xl outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all text-[15px] bg-[var(--card)]';

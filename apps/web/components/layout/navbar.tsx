@@ -9,7 +9,7 @@ import NotificationBell from '@/components/shared/notification-bell';
 export function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState<{ firstName: string; avatarUrl?: string | null; isVerified?: boolean } | null>(null);
+  const [user, setUser] = useState<{ firstName: string; avatarUrl?: string | null; isVerified?: boolean; role?: string } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -76,10 +76,11 @@ export function Navbar() {
               
               <NotificationBell />
 
-              <Link href="/host/dashboard" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
-                Tableau de bord
-              </Link>
-
+              {user?.role === 'HOST' && (
+                <Link href="/host/dashboard" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                  Tableau de bord
+                </Link>
+              )}
               <Link href="/messages" className="relative p-2 text-[var(--text-sec)] hover:text-[var(--text)] transition-colors">
                 <i className="fa-regular fa-comment-dots text-xl" />
               </Link>
