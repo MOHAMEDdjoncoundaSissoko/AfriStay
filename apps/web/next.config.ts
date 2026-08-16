@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  allowedDevOrigins: ['http://192.168.1.161:3000'], // <-- Ligne ajoutée pour le téléphone
 };
 
 export default nextConfig;

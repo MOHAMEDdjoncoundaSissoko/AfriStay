@@ -68,13 +68,13 @@ export default function Home() {
           <form 
             action="/search" 
             method="GET"
-            className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-2xl mx-auto flex flex-col md:flex-row"
+            className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-2xl mx-auto flex flex-wrap"
           >
             <input 
               name="q"
               type="text" 
               placeholder="Où allez-vous ?" 
-              className="flex-1 px-5 py-4 text-[var(--text)] outline-none text-[15px] min-w-0" 
+              className="flex-1 min-w-[200px] px-5 py-4 text-[var(--text)] outline-none text-[15px]" 
             />
             <input 
               name="checkIn"

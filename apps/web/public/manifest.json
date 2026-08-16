@@ -1,0 +1,21 @@
+{
+  "name": "AfriStay",
+  "short_name": "AfriStay",
+  "description": "Réservez des logements uniques en Afrique de l'Ouest",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF7F2",
+  "theme_color": "#D4522A",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
