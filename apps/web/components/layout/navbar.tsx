@@ -3,20 +3,29 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
+import { apiRequest } from '@/lib/api/client';
 import { VerifiedBadge } from '@/components/shared/verified-badge';
 import NotificationBell from '@/components/shared/notification-bell';
 
 export function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState<{ firstName: string; lastName?: string; avatarUrl?: string | null; isVerified?: boolean; role?: string; email?: string } | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [isHost, setIsHost] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const userStr = localStorage.getItem('afristay_user');
     if (userStr) {
-      try { setUser(JSON.parse(userStr)); } catch {}
+      try { 
+        const userData = JSON.parse(userStr); 
+        setUser(userData); 
+        // Si le mot 'HOST' est dans ses rôles, on affiche le menu
+        if (userData.roles?.includes('HOST')) {
+          setIsHost(true);
+        }
+      } catch {}
     }
   }, []);
 
@@ -59,7 +68,7 @@ export function Navbar() {
             )}
           </button>
 
-          {/* Hamburger (SEULEMENT sur mobile) - EN DEHORS DU BLOC CACHE */}
+          {/* Hamburger (SEULEMENT sur mobile) */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden p-2 rounded-lg text-gray-800 dark:text-white hover:bg-white/50 dark:hover:bg-slate-700 transition-colors"
@@ -87,7 +96,7 @@ export function Navbar() {
                 
                 <NotificationBell />
 
-                {user?.role === 'HOST' && (
+                {isHost && (
                   <Link href="/host/dashboard" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                     Tableau de bord
                   </Link>
@@ -123,7 +132,7 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* PANNEAU MOBILE (EN DEHORS DE LA BARRE PRINCIPALE) */}
+      {/* PANNEAU MOBILE */}
       {mobileOpen && (
         <div className="md:hidden bg-white dark:bg-slate-900 border-t border-[var(--border)] shadow-xl p-6 space-y-3">
           
@@ -156,7 +165,7 @@ export function Navbar() {
               <Link href="/traveler/favorites" onClick={() => setMobileOpen(false)} className="block px-2 py-2 text-sm font-medium hover:text-primary transition">Favoris</Link>
               <Link href="/messages" onClick={() => setMobileOpen(false)} className="block px-2 py-2 text-sm font-medium hover:text-primary transition">Messages</Link>
               
-              {user.role === 'HOST' && (
+              {isHost && (
                 <Link href="/host/dashboard" onClick={() => setMobileOpen(false)} className="block px-2 py-2 text-sm font-medium hover:text-primary transition">Tableau de bord</Link>
               )}
 

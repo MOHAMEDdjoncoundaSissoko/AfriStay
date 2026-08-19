@@ -171,7 +171,6 @@ export default function BecomeHostPage() {
     setStep(step - 1);
   }
 
-  // ✅ Plus besoin de "e: React.FormEvent" ni de "e.preventDefault()"
   async function handleSubmit() {
     setError('');
     setLoading(true);
@@ -198,6 +197,19 @@ export default function BecomeHostPage() {
         body: payload,
         token,
       });
+
+      // ✅ MAGIE : Si c'est une NOUVELLE annonce, on donne le rôle HÔTE dans le navigateur
+      if (!isEditMode) {
+        const userStr = localStorage.getItem('afristay_user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          // On ajoute 'HOST' à ses rôles s'il ne l'a pas déjà
+          if (!user.roles?.includes('HOST')) {
+            user.roles = [...(user.roles || ['TRAVELER']), 'HOST'];
+            localStorage.setItem('afristay_user', JSON.stringify(user));
+          }
+        }
+      }
 
       router.push('/host/dashboard');
     } catch (err: unknown) {
@@ -241,7 +253,6 @@ export default function BecomeHostPage() {
             </div>
           )}
 
-          {/* ✅ On remplace <form> par un simple <div> */}
           <div>
             {step === 0 && (
               <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
@@ -563,7 +574,6 @@ export default function BecomeHostPage() {
                   <i className="fa-solid fa-arrow-right ml-2 text-sm" />
                 </button>
               ) : (
-                // ✅ Plus de "type='submit'", juste un onClick normal
                 <button
                   type="button"
                   disabled={loading}
@@ -574,7 +584,6 @@ export default function BecomeHostPage() {
                 </button>
               )}
             </div>
-          {/* ✅ Fermeture du div à la place du form */}
           </div>
         </div>
       </main>
