@@ -10,6 +10,7 @@ import { BookingCalendar } from '@/components/booking/booking-calendar';
 import Lightbox from '@/components/shared/lightbox';
 import PropertyReviews from '@/components/property/property-reviews';
 import FavoriteButton from '@/components/shared/favorite-button';
+import { useCurrency } from '@/lib/currency/currency-context';
 
 interface Property {
   id: string;
@@ -17,6 +18,7 @@ interface Property {
   slug: string;
   description: string;
   pricePerNight: number;
+  currency: string;
   pricePerWeek: number | null;
   pricePerMonth: number | null;
   bedrooms: number;
@@ -56,6 +58,8 @@ export default function PropertyDetails({ property, error }: PropertyDetailsProp
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [guests, setGuests] = useState(1);
+  const { convert } = useCurrency();
 
   if (error || !property) {
     return (
@@ -223,6 +227,12 @@ export default function PropertyDetails({ property, error }: PropertyDetailsProp
                   <div>
                     <span className="text-2xl font-extrabold">{formatPrice(property.pricePerNight)}</span>
                     <span className="text-sm text-[var(--text-sec)] font-normal"> / nuit</span>
+
+                    {property.currency && property.currency !== 'XOF' && (
+                      <span className="text-xs text-[var(--text-sec)] block mt-0.5">
+                        ≈ {convert(property.pricePerNight, property.currency).amount} {convert(property.pricePerNight, property.currency).symbol} / nuit
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -251,7 +261,7 @@ export default function PropertyDetails({ property, error }: PropertyDetailsProp
                 {/* Voyageurs */}
                 <div className="mb-4">
                   <label className="block text-xs font-bold uppercase tracking-wide mb-1.5">Voyageurs</label>
-                  <select className="w-full px-4 py-3 border border-[var(--border)] rounded-xl outline-none focus:border-primary text-sm bg-white">
+                  <select value={guests} onChange={(e) => setGuests(Number(e.target.value))} className="w-full px-4 py-3 border border-[var(--border)] rounded-xl outline-none focus:border-primary text-sm bg-white">
                     {Array.from({ length: property.maxGuests }, (_, i) => (
                       <option key={i + 1} value={i + 1}>{i + 1} voyageur{i > 0 ? 's' : ''}</option>
                     ))}
@@ -316,17 +326,27 @@ export default function PropertyDetails({ property, error }: PropertyDetailsProp
                         return;
                       }
                       try {
-                        await apiRequest<any>('/api/bookings', {
+                        const result = await apiRequest<any>('/api/bookings', {
                           method: 'POST',
                           token,
                           body: {
                             propertyId: property.id,
                             checkInDate: checkIn.toISOString().split('T')[0],
                             checkOutDate: checkOut.toISOString().split('T')[0],
-                            numberOfGuests: 1,
+                            numberOfGuests: guests,
                           },
                         });
-                        setBookingSuccess(true);
+
+                        try {
+                          const payment = await apiRequest<any>('/api/payments/initiate', {
+                            method: 'POST',
+                            token,
+                            body: { bookingId: result.booking.id },
+                          });
+                          window.location.href = payment.paymentUrl;
+                        } catch {
+                          setBookingSuccess(true);
+                        }
                       } catch (err: unknown) {
                         setBookingError(err instanceof Error ? err.message : 'Erreur lors de la réservation');
                       } finally {

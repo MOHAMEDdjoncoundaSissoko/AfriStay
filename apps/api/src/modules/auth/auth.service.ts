@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -18,7 +18,7 @@ export class AuthService {
       where: { email: dto.email },
     });
     if (existing) {
-      throw new UnauthorizedException('Cet email est déjà utilisé');
+      throw new ConflictException('Cet email est déjà utilisé');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);

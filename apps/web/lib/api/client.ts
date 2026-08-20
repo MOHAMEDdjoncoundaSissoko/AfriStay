@@ -21,6 +21,21 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     body: body ? JSON.stringify(body) : undefined,
   });
 
+  if (res.status === 401) {
+    const newToken = await tryRefresh();
+    if (newToken) {
+      res = await fetch(`${API_URL}${path}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${newToken}`,
+          ...headers,
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    }
+  }
+
   const data = await res.json();
 
   if (!res.ok) {

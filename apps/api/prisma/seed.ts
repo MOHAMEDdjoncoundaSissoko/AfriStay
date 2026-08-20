@@ -173,6 +173,25 @@ async function main() {
 
   console.log('✅ Commission par défaut créée (10%)');
 
+  // Devises
+  const currencies = [
+    { code: 'XOF', name: 'Franc CFA', symbol: 'FCFA', flagEmoji: '🇨🇮', rateToXof: 1 },
+    { code: 'NGN', name: 'Naira', symbol: '₦', flagEmoji: '🇳🇬', rateToXof: 0.94 },
+    { code: 'GHS', name: 'Cedi', symbol: '₵', flagEmoji: '🇬🇭', rateToXof: 89 },
+    { code: 'KES', name: 'Shilling', symbol: 'KSh', flagEmoji: '🇰🇪', rateToXof: 5.5 },
+    { code: 'ZAR', name: 'Rand', symbol: 'R', flagEmoji: '🇿🇦', rateToXof: 40 },
+    { code: 'USD', name: 'Dollar', symbol: '$', flagEmoji: '🇺🇸', rateToXof: 600 },
+    { code: 'EUR', name: 'Euro', symbol: '€', flagEmoji: '🇪🇺', rateToXof: 655.96 },
+  ];
+
+  for (const c of currencies) {
+    await prisma.currency.upsert({
+      where: { code: c.code },
+      update: {},
+      create: c,
+    });
+  }
+
   console.log('\n🎉 Seed terminé avec succès !');
 }
 

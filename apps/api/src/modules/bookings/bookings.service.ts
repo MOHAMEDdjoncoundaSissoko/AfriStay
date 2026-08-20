@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException 
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AvailabilityStatus } from '@prisma/client';
 
 @Injectable()
 export class BookingsService {
@@ -133,7 +134,7 @@ export class BookingsService {
       dates.push({
         propertyId,
         date: new Date(current),
-        status: 'BOOKED',
+        status: AvailabilityStatus.BOOKED,
         bookingId: booking.id,
       });
       current.setDate(current.getDate() + 1);

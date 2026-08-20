@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import { ThemeProvider } from '@/providers/theme-provider';
+import { CurrencyProvider } from '@/lib/currency/currency-context';
 
 export const metadata: Metadata = {
   title: "AfriStay — Découvrez l'Afrique, chez vous",
@@ -33,7 +34,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
         <ThemeProvider>
-          {children}
+          <CurrencyProvider>
+            {children}
+          </CurrencyProvider>
         </ThemeProvider>
       </body>
     </html>

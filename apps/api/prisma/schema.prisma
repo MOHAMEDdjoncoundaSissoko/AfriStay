@@ -2,22 +2,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model UserVerification {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  documentType String   // "ID_CARD" ou "PASSPORT"
-  documentUrl  String   // Lien Cloudinary
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  reviewedAt  DateTime?
-  rejectReason String?
-  
-  createdAt   DateTime @default(now())
-  
-  @@map("user_verifications")
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -95,6 +79,12 @@ enum CancellationPolicy {
 enum ContentType {
   TEXT
   IMAGE
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BLOCKED
+  BOOKED
 }
 
 // ============================================================
@@ -217,6 +207,21 @@ model User {
 
   verifications UserVerification[]
   refreshTokens     RefreshToken[]
+  contacts           Contact[]
+}
+
+model Currency {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  symbol      String
+  flagEmoji   String?
+  rateToXof   Float
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("currencies")
 }
 
 // ============================================================
@@ -312,7 +317,7 @@ model PropertyAvailability {
   id        String  @id @default(cuid())
   propertyId String  @map("property_id")
   date      DateTime @db.Date
-  status    String  @default("AVAILABLE") // AVAILABLE, BLOCKED, BOOKED
+  status    AvailabilityStatus  @default(AVAILABLE) // AVAILABLE, BLOCKED, BOOKED
   bookingId String? @map("booking_id") // renseigné quand status = BOOKED
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
@@ -558,9 +563,26 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+model UserVerification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  documentType String   // "ID_CARD" ou "PASSPORT"
+  documentUrl  String   // Lien Cloudinary
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  reviewedAt  DateTime?
+  rejectReason String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("user_verifications")
+}
+
 model Contact {
   id        String   @id @default(cuid())
-  userId    String?  
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)  
   firstName String?
   lastName  String?
   email     String
@@ -569,4 +591,7 @@ model Contact {
   reply     String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  @@index([isRead])
+  @@index([userId])
+  @@map("contacts")
 }

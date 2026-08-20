@@ -12,6 +12,8 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { PaymentModule } from './modules/payments/payment.module';
+import { CurrenciesModule } from './modules/currencies/currencies.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { ContactModule } from './modules/contact/contact.module';
     FavoritesModule,
     NotificationsModule,
     ContactModule,
+    PaymentModule,
+    CurrenciesModule,
   ],
   controllers: [ReferencesController], // <-- AJOUTE CETTE LIGNE
 })

@@ -30,6 +30,7 @@ interface PropertyForm {
   petsAllowed: boolean;
   smokingAllowed: boolean;
   amenitySlugs: string[];
+  currency: string;
 }
 
 const INITIAL_FORM: PropertyForm = {
@@ -52,6 +53,7 @@ const INITIAL_FORM: PropertyForm = {
   petsAllowed: false,
   smokingAllowed: false,
   amenitySlugs: [],
+  currency: 'XOF',
 };
 
 const AMENITIES = [
@@ -87,6 +89,7 @@ export default function BecomeHostPage() {
   const [cities, setCities] = useState<{ id: string; name: string; slug: string; countryId: string }[]>([]);
   const [propertyTypes, setPropertyTypes] = useState<{ id: string; name: string; icon: string }[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [currencies, setCurrencies] = useState<{ code: string; name: string; symbol: string; flagEmoji?: string }[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -95,6 +98,8 @@ export default function BecomeHostPage() {
         setCountries(data.countries);
         setCities(data.cities);
         setPropertyTypes(data.propertyTypes);
+        const curr = await apiRequest<any>('/api/currencies');
+        setCurrencies(curr);
 
         if (editId && editId !== 'new') {
           const prop = await apiRequest<any>(`/api/properties/${editId}`);
@@ -118,6 +123,7 @@ export default function BecomeHostPage() {
             petsAllowed: prop.petsAllowed,
             smokingAllowed: prop.smokingAllowed,
             amenitySlugs: prop.amenities?.map((a: any) => a.amenity.slug) || [],
+            currency: prop.currency || 'XOF',
           });
 
           if (prop.images) {
@@ -183,8 +189,9 @@ export default function BecomeHostPage() {
     }
 
     try {
+      const { currency, ...rest } = form;
       const payload = {
-        ...form,
+        ...rest,
         imageUrls: imageUrls,
         pricePerWeek: form.pricePerWeek ? parseInt(form.pricePerWeek) : null,
         pricePerMonth: form.pricePerMonth ? parseInt(form.pricePerMonth) : null,
@@ -432,7 +439,24 @@ export default function BecomeHostPage() {
             {step === 3 && (
               <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
                 <div>
-                  <label className={labelClass}>Prix par nuit (FCFA) *</label>
+                  <label className={labelClass}>Devise *</label>
+
+                  <select
+                    value={form.currency}
+                    onChange={(e) => update('currency', e.target.value)}
+                    className={selectClass}
+                  >
+                    {currencies.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.flagEmoji} {c.code} — {c.name} ({c.symbol})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>
+                    Prix par nuit ({currencies.find(c => c.code === form.currency)?.symbol || 'FCFA'}) *
+                  </label>
                   <input
                     type="number"
                     value={form.pricePerNight || ''}
@@ -444,7 +468,9 @@ export default function BecomeHostPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className={labelClass}>Prix par semaine (FCFA)</label>
+                    <label className={labelClass}>
+                      Prix par semaine ({currencies.find(c => c.code === form.currency)?.symbol || 'FCFA'})
+                    </label>
                     <input
                       type="number"
                       value={form.pricePerWeek}
@@ -454,7 +480,9 @@ export default function BecomeHostPage() {
                     />
                   </div>
                   <div>
-                    <label className={labelClass}>Prix par mois (FCFA)</label>
+                    <label className={labelClass}>
+                      Prix par mois ({currencies.find(c => c.code === form.currency)?.symbol || 'FCFA'})
+                    </label>
                     <input
                       type="number"
                       value={form.pricePerMonth}
@@ -504,7 +532,7 @@ export default function BecomeHostPage() {
                       type="number"
                       min="1"
                       value={form.areaSqm}
-                      onChange={(e) => update('areaSqm', parseInt(e.target.value))}
+                      onChange={(e) => update('areaSqm', parseInt(e.target.value) || 1)}
                       className={inputClass}
                     />
                   </div>
@@ -516,7 +544,7 @@ export default function BecomeHostPage() {
                     type="number"
                     min="1"
                     value={form.maxGuests}
-                    onChange={(e) => update('maxGuests', parseInt(e.target.value))}
+                    onChange={(e) => update('maxGuests', parseInt(e.target.value) || 1)}
                     className={inputClass}
                     style={{ maxWidth: '200px' }}
                   />
@@ -539,7 +567,13 @@ export default function BecomeHostPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[var(--text-sec)]">Prix / nuit</span>
-                      <span className="font-bold text-primary">{form.pricePerNight ? new Intl.NumberFormat('fr-FR').format(form.pricePerNight) + ' FCFA' : '—'}</span>
+                      <span className="font-bold text-primary">
+                        {form.pricePerNight
+                          ? new Intl.NumberFormat('fr-FR').format(form.pricePerNight) +
+                            ' ' +
+                            (currencies.find(c => c.code === form.currency)?.symbol || 'FCFA')
+                        : '—'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[var(--text-sec)]">Équipements</span>

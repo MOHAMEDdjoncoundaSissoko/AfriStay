@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { formatPrice } from '@/lib/utils/format-price';
 import FavoriteButton from '@/components/shared/favorite-button';
+import { useCurrency } from '@/lib/currency/currency-context';
 
 interface Property {
   id: string;
   title: string;
   slug: string;
   pricePerNight: number;
+  currency: string;
   bedrooms: number;
   beds: number;
   bathrooms: number;
@@ -23,6 +25,7 @@ interface Property {
 export function PropertyCard({ property, isActive }: { property: Property; isActive?: boolean }) {
   // Image de remplacement basée sur l'ID
   const imgUrl = `https://picsum.photos/seed/${property.id}/600/450`;
+  const { convert, selectedCurrency } = useCurrency();
 
   return (
     <Link href={`/property/${property.id}`} className="group block">
@@ -72,6 +75,12 @@ export function PropertyCard({ property, isActive }: { property: Property; isAct
           <p className="font-bold text-base">
             {formatPrice(property.pricePerNight)} <span className="font-normal text-sm text-[var(--text-sec)]">/ nuit</span>
           </p>
+
+          {property.currency && property.currency !== selectedCurrency && (
+            <span className="text-xs text-[var(--text-sec)]">
+              ≈ {convert(property.pricePerNight, property.currency).amount} {convert(property.pricePerNight, property.currency).symbol} / nuit
+            </span>
+          )}
         </div>
       </div>
     </Link>
