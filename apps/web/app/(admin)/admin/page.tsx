@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { formatPrice } from '@/lib/utils/format-price';
+import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -64,6 +65,10 @@ export default function AdminDashboard() {
             {data.pendingVerifications} vérification{data.pendingVerifications > 1 ? 's' : ''} en attente
           </span>
         )}
+        <Link href="/admin/contacts" className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+          <i className="fa-solid fa-envelope mr-1.5" />
+          Messages contact
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

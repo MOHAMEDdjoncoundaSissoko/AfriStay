@@ -95,9 +95,11 @@ export function Navbar() {
 
           {/* Menu Desktop (CACHÉ sur mobile) */}
           <div className="hidden md:flex items-center gap-1">
-            <Link href="/host/become-host" className="px-4 py-2 rounded-lg text-sm font-semibold text-primary hover:bg-primary-light dark:hover:bg-orange-900/30 transition-colors">
-              Devenir hôte
-            </Link>
+            {user && !isHost && !user.roles?.includes('ADMIN') && (
+              <Link href="/host/become-host" className="px-4 py-2 rounded-lg text-sm font-semibold text-primary hover:bg-primary-light dark:hover:bg-orange-900/30 transition-colors">
+                Devenir hôte
+              </Link>
+            )}
 
             {token && user ? (
               <>
@@ -115,6 +117,12 @@ export function Navbar() {
                 {isHost && (
                   <Link href="/host/dashboard" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                     Tableau de bord
+                  </Link>
+                )}
+
+                {user?.roles?.includes('ADMIN') && (
+                  <Link href="/admin" className="px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-sec)] hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                    Administration
                   </Link>
                 )}
 
@@ -186,7 +194,15 @@ export function Navbar() {
               )}
 
               <hr className="border-[var(--border)]" />
-              <Link href="/host/become-host" onClick={() => setMobileOpen(false)} className="block px-2 py-2 text-sm font-semibold text-primary">Devenir hôte</Link>
+              {user && !isHost && !user.roles?.includes('ADMIN') && (
+                <Link href="/host/become-host" className="px-4 py-2 rounded-lg text-sm font-semibold text-primary hover:bg-primary-light dark:hover:bg-orange-900/30 transition-colors">
+                  Devenir hôte
+                </Link>
+              )}
+
+              {user?.roles?.includes('ADMIN') && (
+                <Link href="/admin" onClick={() => setMobileOpen(false)} className="block px-2 py-2 text-sm font-semibold text-primary">Administration</Link>
+              )}
             </>
           ) : (
             <div className="flex flex-col gap-2 pt-2">
