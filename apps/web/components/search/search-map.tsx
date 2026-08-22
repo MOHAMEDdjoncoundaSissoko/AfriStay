@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useCurrency } from '@/lib/currency/currency-context';
 
 interface MapMarker {
   id: string;
@@ -21,6 +22,7 @@ export function SearchMap({ markers, activeId, onMarkerClick }: SearchMapProps) 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<L.Map | null>(null);
   const leafletMarkers = useRef<L.Marker[]>([]);
+  const { convert } = useCurrency();
 
   // Initialiser la carte
   useEffect(() => {
@@ -79,7 +81,14 @@ export function SearchMap({ markers, activeId, onMarkerClick }: SearchMapProps) 
           border: 2px solid ${isActive ? '#D4522A' : 'transparent'};
           transform: scale(${isActive ? '1.1' : '1'});
           transition: all 0.2s;
-        ">${new Intl.NumberFormat('fr-FR').format(m.pricePerNight)} F</div>`,
+        ">${(() => {
+          const basePrice = new Intl.NumberFormat('fr-FR').format(m.pricePerNight);
+          const cur = (m as any).currency || 'XOF';
+          const conv = convert(m.pricePerNight, cur);
+          return conv.symbol && conv.symbol !== 'FCFA'
+            ? `${basePrice} FCFA<br><span style="font-size:10px;color:#666">≈ ${conv.amount} ${conv.symbol}</span>`
+            : `${basePrice} FCFA`;
+        })()}</div>`,
         iconSize: [80, 32],
         iconAnchor: [40, 32],
       });
