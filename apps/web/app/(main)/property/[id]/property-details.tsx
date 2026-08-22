@@ -226,7 +226,14 @@ export default function PropertyDetails({ property, error }: PropertyDetailsProp
                 <div className="flex justify-between items-center mb-4">
                   <div>
                     <span className="text-2xl font-extrabold">{formatPrice(property.pricePerNight)}</span>
-                    <span className="text-sm text-[var(--text-sec)] font-normal"> / nuit</span>
+                    {(() => {
+                      const conv = convert(property.pricePerNight, property.currency || 'XOF');
+                      return conv.symbol !== 'FCFA' ? (
+                        <span className="text-xs text-[var(--text-sec)] block mt-0.5">
+                          ≈ {conv.amount} {conv.symbol} / nuit
+                        </span>
+                      ) : null;
+                    })()}
 
                     {property.currency && property.currency !== 'XOF' && (
                       <span className="text-xs text-[var(--text-sec)] block mt-0.5">
