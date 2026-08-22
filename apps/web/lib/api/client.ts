@@ -1,4 +1,23 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const RETRY_COUNT = 2;
+const TIMEOUT_MS = 15000;
+
+async function safeFetch(url: string, options: RequestInit = {}, retries = RETRY_COUNT): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeout);
+      return res;
+    } catch (err) {
+      if (attempt === retries || (err as any)?.name === 'AbortError') throw err;
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
+  throw new Error('Impossible de joindre le serveur');
+}
 
 interface RequestOptions {
   method?: string;
@@ -11,7 +30,7 @@ interface RequestOptions {
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, headers = {}, token } = options;
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await safeFetch(`${API_URL}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -24,7 +43,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   if (res.status === 401) {
     const newToken = await tryRefresh();
     if (newToken) {
-      res = await fetch(`${API_URL}${path}`, {
+      res = await safeFetch(`${API_URL}${path}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +148,7 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
     headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   }
 
-  let res = await fetch(`${API_URL}${url}`, { ...options, headers });
+  let res = await safeFetch(`${API_URL}${url}`, { ...options, headers });
 
   // Si 401, essayer le refresh UNE fois
   if (res.status === 401) {
@@ -141,7 +160,7 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
 
     // Rejouer la requête avec le nouveau token
     headers['Authorization'] = `Bearer ${newToken}`;
-    res = await fetch(`${API_URL}${url}`, { ...options, headers });
+    res = await safeFetch(`${API_URL}${url}`, { ...options, headers });
   }
 
   if (!res.ok) {
