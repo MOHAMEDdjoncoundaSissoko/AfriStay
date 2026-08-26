@@ -258,6 +258,7 @@ model Property {
   minStayNights       Int              @default(1) @map("min_stay_nights")
   maxStayNights       Int?             @map("max_stay_nights")
   status              PropertyStatus   @default(DRAFT)
+  deletedAt           DateTime?        @map("deleted_at")
   ratingAverage       Float            @default(0) @map("rating_average")
   reviewCount         Int              @default(0) @map("review_count")
   createdAt           DateTime         @default(now()) @map("created_at")

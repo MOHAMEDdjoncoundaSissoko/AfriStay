@@ -129,6 +129,7 @@ export class PropertiesService {
     });
 
     if (!property) throw new NotFoundException('Logement non trouvé');
+    if (property.deletedAt) throw new NotFoundException('Logement non trouvé');
     return property;
   }
 
@@ -218,7 +219,7 @@ export class PropertiesService {
     if (!property) throw new NotFoundException('Logement non trouvé');
     if (property.hostId !== userId) throw new ForbiddenException('Vous n\'êtes pas le propriétaire');
 
-    await this.prisma.property.delete({ where: { id } });
+    await this.prisma.property.update({ where: { id }, data: { deletedAt: new Date() } });
     return { deleted: true };
   }
 
@@ -242,7 +243,7 @@ export class PropertiesService {
   }
 
   private async buildWhere(query: any): Promise<any> {
-    const where: any = { status: 'PUBLISHED' };
+    const where: any = { status: 'PUBLISHED', deletedAt: null };
 
     if (query.city) {
       const city = await this.prisma.city.findFirst({
@@ -291,8 +292,8 @@ export class PropertiesService {
     });
   }
 
-    async findMapMarkers(query: PropertyQueryDto) {
-    const where: any = { status: 'PUBLISHED' };
+  async findMapMarkers(query: PropertyQueryDto) {
+    const where: any = { status: 'PUBLISHED', deletedAt: null };
 
     if (query.city) {
       where.OR = [
