@@ -198,6 +198,11 @@ model User {
   // Relations admin
   adminLogs         AdminLog[]
 
+  // Payouts
+  payoutMethods     HostPayoutMethod[]
+  payouts           Payout[]
+  processedPayouts  Payout[]           @relation("ProcessedPayouts")
+
   // Notifications
   notifications     Notification[]
 
@@ -360,6 +365,7 @@ model Booking {
   payments     Payment[]
   review       Review?
   availability PropertyAvailability[]
+  payouts           Payout[]
 
   @@index([travelerId])
   @@index([propertyId])
@@ -595,4 +601,58 @@ model Contact {
   @@index([isRead])
   @@index([userId])
   @@map("contacts")
+}
+
+// ============================================================
+// MOYENS DE PAIEMENT HÔTE
+// ============================================================
+
+model HostPayoutMethod {
+  id          String   @id @default(cuid())
+  hostId      String
+  host        User     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  type        String   // ORANGE_MONEY, WAVE, MTN_MOMO, BANK_TRANSFER
+  phoneNumber String?
+  accountName String?
+  bankName    String?
+  rib         String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  payouts     Payout[]
+
+  @@index([hostId])
+  @@map("host_payout_methods")
+}
+
+// ============================================================
+// PAIEMENTS HÔTE (VERSEMENTS)
+// ============================================================
+
+model Payout {
+  id               String   @id @default(cuid())
+  bookingId        String   @map("booking_id")
+  hostId           String   @map("host_id")
+  amount           Int
+  currency         String   @default("XOF")
+  method           String
+  status           String   @default("PENDING") // PENDING, PAID, FAILED
+  reference        String?  // numéro de transaction manuel
+  paidAt           DateTime? @map("paid_at")
+  processedByAdminId String? @map("processed_by_admin_id")
+  processedByAdmin User?    @relation("ProcessedPayouts", fields: [processedByAdminId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  booking    Booking           @relation(fields: [bookingId], references: [id])
+  host       User              @relation(fields: [hostId], references: [id])
+  payoutMethod HostPayoutMethod? @relation(fields: [payoutMethodId], references: [id])
+
+  payoutMethodId String? @map("payout_method_id")
+
+  @@index([hostId])
+  @@index([status])
+  @@index([bookingId])
+  @@map("payouts")
 }

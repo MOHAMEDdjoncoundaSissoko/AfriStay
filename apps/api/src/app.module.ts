@@ -14,6 +14,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ContactModule } from './modules/contact/contact.module';
 import { PaymentModule } from './modules/payments/payment.module';
 import { CurrenciesModule } from './modules/currencies/currencies.module';
+import { PayoutsModule } from './modules/payouts/payouts.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CurrenciesModule } from './modules/currencies/currencies.module';
     ContactModule,
     PaymentModule,
     CurrenciesModule,
+    PayoutsModule,
   ],
   controllers: [ReferencesController], // <-- AJOUTE CETTE LIGNE
 })
