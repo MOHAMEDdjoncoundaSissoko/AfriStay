@@ -1,8 +1,9 @@
-import { Controller, Post, Get, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Req, UseGuards, Headers } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Request } from 'express';
+import { verifyCinetPaySignature, verifyPaystackSignature } from './utils/signature.util';
 
 @Controller('payments')
 export class PaymentController {
@@ -15,8 +16,14 @@ export class PaymentController {
   }
 
   @Post('webhook/cinetpay')
-  async cinetpayWebhook(@Body() body: any) {
-    return this.paymentService.handleCinetPayWebhook(body);
+  async cinetpayWebhook( @Req() req: Request, @Headers('x-token') signature: string,) {
+    const rawBody = JSON.stringify(req.body);
+    const isValid = verifyCinetPaySignature(rawBody, signature, process.env.CINETPAY_SECRET_KEY!,);
+
+    if (!isValid) {
+      return { status: 'ok' };
+    }
+    return this.paymentService.handleCinetPayWebhook(req.body);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -26,7 +33,13 @@ export class PaymentController {
   }
 
   @Post('webhook/paystack')
-  async paystackWebhook(@Body() body: any) {
-    return this.paymentService.handlePaystackWebhook(body);
+  async paystackWebhook(@Req() req: Request, @Headers('x-paystack-signature') signature: string,) {
+    const rawBody = JSON.stringify(req.body);
+    const isValid = verifyPaystackSignature( rawBody, signature, process.env.PAYSTACK_SECRET_KEY!,);
+
+    if (!isValid) {
+      return { status: 'ok' };
+    }
+    return this.paymentService.handlePaystackWebhook(req.body);
   }
 }

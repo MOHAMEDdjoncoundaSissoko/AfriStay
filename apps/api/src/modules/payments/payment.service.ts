@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CinetPayStrategy } from './strategies/cinetpay.strategy';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PaystackStrategy } from './strategies/paystack.strategy';
+import { assertTransition, PaymentStatus } from './utils/payment-states.util';
 
 @Injectable()
 export class PaymentService {
@@ -32,6 +33,24 @@ export class PaymentService {
     if (booking.travelerId !== userId) throw new BadRequestException('Non autorisé');
     if (booking.status === 'CANCELLED') throw new BadRequestException('Réservation annulée');
 
+    // Idempotence : si un paiement PENDING existe déjà pour cette réservation,
+    // on le retourne au lieu d'en créer un nouveau
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: {
+        bookingId: bookingId,
+        status: 'PENDING',
+      },
+    });
+
+    if (existingPayment) {
+      // Retourner le paiement existant au lieu d'en créer un doublon
+      return {
+        paymentId: existingPayment.id,
+        paymentUrl: existingPayment.externalId, // ou le champ où tu stockes l'URL
+        status: existingPayment.status,
+      };
+    }
+
     const payment = await this.prisma.payment.findFirst({
       where: { bookingId },
     });
@@ -41,7 +60,7 @@ export class PaymentService {
 
     const strategy = this.getStrategy(booking.currency);
     const isCinetpay = booking.currency === 'XOF';
-    const returnUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/traveler/bookings`;
+    const returnUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/booking/${booking.id}/payment-result`;
     const notifyUrl = `${process.env.API_URL || 'http://localhost:4000'}/api/payments/webhook/${isCinetpay ? 'cinetpay' : 'paystack'}`;
 
     const result = await strategy.initiate({
@@ -96,6 +115,17 @@ export class PaymentService {
 
     if (!payment) return { success: false, message: 'Paiement non trouvé' };
 
+    // === DÉBUT VÉRIFICATION MONTANT ===
+    const cinetpayAmount = Math.round(body.cpm_amount || 0);
+    const expectedAmount = Math.round(payment.amount);
+    if (cinetpayAmount !== expectedAmount) {
+      console.error(
+        `[SECURITE] Montant incohérent CinetPay: recu=${cinetpayAmount}, attendu=${expectedAmount}, payment=${payment.id}`,
+      );
+      return { success: true };
+    }
+    // === FIN VÉRIFICATION MONTANT ===
+
     const statusMap: Record<string, any> = {
       ACCEPTED: 'SUCCESS',
       PENDING: 'PENDING',
@@ -111,8 +141,9 @@ export class PaymentService {
       WALLET: 'WAVE',
     };
 
+    assertTransition(payment.status, newStatus as PaymentStatus);
     const updateData: any = {
-      status: newStatus,
+      status: newStatus as PaymentStatus,
       method: methodMap[cpm_pay_method] || payment.method,
       externalId: body.cpm_trans_reference || null,
     };
@@ -183,6 +214,25 @@ export class PaymentService {
 
     if (!payment) return { success: false, message: 'Paiement non trouvé' };
 
+    // === DÉBUT VÉRIFICATION MONTANT ===
+    const paystackAmountRaw = data?.amount || 0;
+    // Paystack envoie en plus petite unité pour certaines devises (kobo, cents)
+    // XOF n'a pas de sous-unité, mais on vérifie les deux cas
+    let paystackAmount: number;
+    if (data?.currency === 'XOF') {
+      paystackAmount = paystackAmountRaw;
+    } else {
+      paystackAmount = paystackAmountRaw / 100;
+    }
+    const expectedAmount = Math.round(payment.amount);
+    if (Math.round(paystackAmount) !== expectedAmount) {
+      console.error(
+        `[SECURITE] Montant incohérent Paystack: recu=${paystackAmount}, attendu=${expectedAmount}, payment=${payment.id}`,
+      );
+      return { success: true };
+    }
+    // === FIN VÉRIFICATION MONTANT ===
+
     const statusMap: Record<string, any> = {
         success: 'SUCCESS',
         pending: 'PENDING',
@@ -198,8 +248,9 @@ export class PaymentService {
         bank: 'VISA',
     };
 
+    assertTransition(payment.status, newStatus as PaymentStatus);
     const updateData: any = {
-        status: newStatus,
+        status: newStatus as PaymentStatus,
         method: channelMap[data?.channel] || payment.method,
         externalId: data?.reference || null,
     };
