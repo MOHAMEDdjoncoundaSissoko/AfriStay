@@ -3,13 +3,15 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AvailabilityStatus } from '@prisma/client';
+import { PayoutsService } from '../payouts/payouts.service';
 
 @Injectable()
 export class BookingsService {
-  //constructor(private prisma: PrismaService) {}
   constructor(
-  private prisma: PrismaService,
-  private notificationsService: NotificationsService,) {}
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+    private payoutsService: PayoutsService,
+  ) {}
 
   async create(userId: string, dto: CreateBookingDto) {
     const { propertyId, checkInDate, checkOutDate, numberOfGuests } = dto;
@@ -258,6 +260,9 @@ export class BookingsService {
       where: { bookingId },
       data: { status: 'SUCCESS', paidAt: new Date() },
     });
+
+      // Créer le payout pour l'hôte
+      this.payoutsService.createPayoutForBooking(bookingId);
 
     // Notification voyageur
     await this.notificationsService.create(

@@ -170,7 +170,7 @@ export class PayoutsService {
     });
 
     if (!booking) return;
-    if (booking.status !== 'COMPLETED') return;
+    if (booking.status !== 'CONFIRMED' && booking.status !== 'COMPLETED') return;
 
     // Vérifier si un payout existe déjà
     const existing = await this.prisma.payout.findFirst({
