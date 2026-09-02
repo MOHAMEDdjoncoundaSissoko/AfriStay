@@ -15,6 +15,7 @@ import { ContactModule } from './modules/contact/contact.module';
 import { PaymentModule } from './modules/payments/payment.module';
 import { CurrenciesModule } from './modules/currencies/currencies.module';
 import { PayoutsModule } from './modules/payouts/payouts.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { PayoutsModule } from './modules/payouts/payouts.module';
     PaymentModule,
     CurrenciesModule,
     PayoutsModule,
+    AnalyticsModule,
   ],
   controllers: [ReferencesController], // <-- AJOUTE CETTE LIGNE
 })

@@ -65,6 +65,10 @@ export default function AdminDashboard() {
             {data.pendingVerifications} vérification{data.pendingVerifications > 1 ? 's' : ''} en attente
           </span>
         )}
+        <Link href="/admin/analytics" className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+          <i className="fa-solid fa-chart-line mr-1.5" />
+          Analytics
+        </Link>
         <Link href="/admin/contacts" className="px-4 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
           <i className="fa-solid fa-envelope mr-1.5" />
           Messages contact
