@@ -6,7 +6,7 @@ import { Navbar } from '@/components/layout/navbar';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Footer } from '@/components/layout/footer';
 import { apiRequest } from '@/lib/api/client';
-import BecomeHostLanding from '@/components/host/become-host-landing';
+import { groupCurrenciesByRegion } from '@/lib/currency/currency-context';
 
 const STEPS = ['Informations', 'Localisation', 'Équipements', 'Prix & Capacité'];
 
@@ -89,7 +89,7 @@ export default function BecomeHostPage() {
   const [cities, setCities] = useState<{ id: string; name: string; slug: string; countryId: string }[]>([]);
   const [propertyTypes, setPropertyTypes] = useState<{ id: string; name: string; icon: string }[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [currencies, setCurrencies] = useState<{ code: string; name: string; symbol: string; flagEmoji?: string }[]>([]);
+  const [currencies, setCurrencies] = useState<{ code: string; name: string; symbol: string; flagEmoji?: string; region?: string | null }[]>([]);
 
   useEffect(() => {
     async function fetchData() {
@@ -446,10 +446,14 @@ export default function BecomeHostPage() {
                     onChange={(e) => update('currency', e.target.value)}
                     className={selectClass}
                   >
-                    {currencies.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.flagEmoji} {c.code} — {c.name} ({c.symbol})
-                      </option>
+                    {groupCurrenciesByRegion(currencies).map((group) => (
+                      <optgroup key={group.key} label={group.label}>
+                        {group.currencies.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.flagEmoji} {c.code} — {c.name} ({c.symbol})
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 </div>

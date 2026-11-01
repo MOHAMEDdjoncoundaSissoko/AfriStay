@@ -41,14 +41,6 @@ export class BookingsController {
     return this.bookingsService.findOne(id);
   }
 
-  @Patch(':id/confirm-payment')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Confirmer le paiement d\'une réservation' })
-  confirmPayment(@Request() req: any, @Param('id') id: string) {
-    return this.bookingsService.confirmPayment(id, req.user.id);
-  }
-
   @Patch(':id/cancel')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CurrenciesService } from '../src/modules/currencies/currencies.service';
+import { CurrenciesService, RATES_API_URL } from '../src/modules/currencies/currencies.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 // Mock du fetch global
@@ -11,6 +11,7 @@ const mockPrismaService = {
     findMany: jest.fn(),
     updateMany: jest.fn(),
   },
+  $transaction: jest.fn(),
 };
 
 describe('CurrenciesService', () => {
@@ -26,6 +27,8 @@ describe('CurrenciesService', () => {
 
     service = module.get<CurrenciesService>(CurrenciesService);
     jest.clearAllMocks();
+    mockPrismaService.currency.updateMany.mockImplementation((args) => args);
+    mockPrismaService.$transaction.mockResolvedValue([]);
   });
 
   // ========================
@@ -33,38 +36,59 @@ describe('CurrenciesService', () => {
   // ========================
 
   describe('fetchRates', () => {
-    it('doit mettre à jour les taux depuis l\'API Frankfurter', async () => {
+    it('doit mettre à jour toutes les devises actives, en inversant le taux (1 devise = x XOF)', async () => {
       mockFetch.mockResolvedValue({
         json: () => Promise.resolve({
-          rates: {
-            NGN: 1.57,
-            GHS: 0.0097,
-            KES: 0.085,
-            ZAR: 0.024,
-            USD: 0.00061,
-            EUR: 0.00056,
-          },
+          result: 'success',
+          rates: { XOF: 1, MAD: 0.016, XAF: 1, EUR: 0.0015245, NGN: 2.5 },
         }),
       });
-      mockPrismaService.currency.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.currency.findMany.mockResolvedValue([
+        { code: 'XOF' }, { code: 'MAD' }, { code: 'XAF' }, { code: 'EUR' }, { code: 'NGN' },
+      ]);
 
       await service.fetchRates();
 
-      // 6 devises mises à jour
-      expect(mockPrismaService.currency.updateMany).toHaveBeenCalledTimes(6);
+      expect(mockFetch).toHaveBeenCalledWith(RATES_API_URL);
+      // XOF est la devise de référence : pas mise à jour
+      expect(mockPrismaService.currency.updateMany).toHaveBeenCalledTimes(4);
+      expect(mockPrismaService.currency.updateMany).toHaveBeenCalledWith({
+        where: { code: 'MAD', isActive: true },
+        data: { rateToXof: 1 / 0.016 },
+      });
       expect(mockPrismaService.currency.updateMany).toHaveBeenCalledWith({
         where: { code: 'NGN', isActive: true },
-        data: { rateToXof: 1.57 },
+        data: { rateToXof: 0.4 },
       });
-      expect(mockPrismaService.currency.updateMany).toHaveBeenCalledWith({
-        where: { code: 'USD', isActive: true },
-        data: { rateToXof: 0.00061 },
-      });
+      expect(mockPrismaService.$transaction).toHaveBeenCalledTimes(1);
     });
 
-    it('doit ignorer si l\'API ne retourne pas de rates', async () => {
+    it('doit ignorer une devise absente de la réponse de l\'API', async () => {
       mockFetch.mockResolvedValue({
-        json: () => Promise.resolve({}),
+        json: () => Promise.resolve({ result: 'success', rates: { MAD: 0.016 } }),
+      });
+      mockPrismaService.currency.findMany.mockResolvedValue([{ code: 'MAD' }, { code: 'ZWG' }]);
+
+      await service.fetchRates();
+
+      expect(mockPrismaService.currency.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('ne doit pas rappeler l\'API avant 6 h', async () => {
+      mockFetch.mockResolvedValue({
+        json: () => Promise.resolve({ result: 'success', rates: { MAD: 0.016 } }),
+      });
+      mockPrismaService.currency.findMany.mockResolvedValue([{ code: 'MAD' }]);
+
+      await service.fetchRates();
+      await service.fetchRates();
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('doit ignorer si l\'API renvoie une erreur', async () => {
+      mockFetch.mockResolvedValue({
+        json: () => Promise.resolve({ result: 'error', 'error-type': 'unsupported-code' }),
       });
 
       await service.fetchRates();
@@ -86,45 +110,41 @@ describe('CurrenciesService', () => {
   // ========================
 
   describe('findAll', () => {
-    it('doit retourner les devises actives triées par code', async () => {
+    it('doit retourner les devises actives triées par code, avec leur région', async () => {
       mockFetch.mockResolvedValue({
-        json: () => Promise.resolve({ rates: {} }),
+        json: () => Promise.resolve({ result: 'error' }),
       });
       mockPrismaService.currency.findMany.mockResolvedValue([
-        { code: 'EUR', name: 'Euro', symbol: '€', flagEmoji: '🇪🇺', rateToXof: 0.00056 },
-        { code: 'GHS', name: 'Cedi', symbol: '₵', flagEmoji: '🇬🇭', rateToXof: 0.0097 },
-        { code: 'NGN', name: 'Naira', symbol: '₦', flagEmoji: '🇳🇬', rateToXof: 1.57 },
-        { code: 'USD', name: 'Dollar', symbol: '$', flagEmoji: '🇺🇸', rateToXof: 0.00061 },
-        { code: 'XOF', name: 'Franc CFA', symbol: 'F', flagEmoji: '🇨🇮', rateToXof: 1 },
-        { code: 'ZAR', name: 'Rand', symbol: 'R', flagEmoji: '🇿🇦', rateToXof: 0.024 },
-        { code: 'KES', name: 'Shilling', symbol: 'KSh', flagEmoji: '🇰🇪', rateToXof: 0.085 },
+        { code: 'MAD', name: 'Dirham marocain', symbol: 'DH', flagEmoji: '🇲🇦', region: 'AFRIQUE_NORD', rateToXof: 59.74 },
+        { code: 'XAF', name: 'Franc CFA (CEMAC)', symbol: 'FCFA', flagEmoji: '🇨🇲', region: 'AFRIQUE_CENTRALE', rateToXof: 1 },
+        { code: 'XOF', name: 'Franc CFA (UEMOA)', symbol: 'FCFA', flagEmoji: '🇨🇮', region: 'AFRIQUE_OUEST', rateToXof: 1 },
       ]);
 
       const result = await service.findAll();
 
-      expect(result).toHaveLength(7);
+      expect(result).toHaveLength(3);
       const call = mockPrismaService.currency.findMany.mock.calls[0][0];
       expect(call.where.isActive).toBe(true);
       expect(call.orderBy).toEqual({ code: 'asc' });
-      // Seuls les champs nécessaires
-      expect(call.select.code).toBe(true);
-      expect(call.select.name).toBe(true);
-      expect(call.select.symbol).toBe(true);
-      expect(call.select.flagEmoji).toBe(true);
-      expect(call.select.rateToXof).toBe(true);
+      expect(call.select).toEqual({
+        code: true,
+        name: true,
+        symbol: true,
+        flagEmoji: true,
+        region: true,
+        rateToXof: true,
+      });
     });
 
     it('doit appeler fetchRates avant de retourner', async () => {
       mockFetch.mockResolvedValue({
-        json: () => Promise.resolve({ rates: {} }),
+        json: () => Promise.resolve({ result: 'error' }),
       });
       mockPrismaService.currency.findMany.mockResolvedValue([]);
 
       await service.findAll();
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.frankfurter.app/latest?from=XOF',
-      );
+      expect(mockFetch).toHaveBeenCalledWith(RATES_API_URL);
     });
   });
 });

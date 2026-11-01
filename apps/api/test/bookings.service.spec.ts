@@ -7,9 +7,14 @@ import {
 import { BookingsService } from '../src/modules/bookings/bookings.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { NotificationsService } from '../src/modules/notifications/notifications.service';
+import { PayoutsService } from '../src/modules/payouts/payouts.service';
 
 const mockNotificationsService = {
   create: jest.fn(),
+};
+
+const mockPayoutsService = {
+  createPayoutForBooking: jest.fn(),
 };
 
 const mockPrismaService = {
@@ -30,6 +35,7 @@ const mockPrismaService = {
   },
   payment: {
     create: jest.fn(),
+    findFirst: jest.fn(),
     updateMany: jest.fn(),
   },
   commission: {
@@ -53,6 +59,7 @@ describe('BookingsService', () => {
         BookingsService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: PayoutsService, useValue: mockPayoutsService },
       ],
     }).compile();
 
@@ -335,7 +342,7 @@ describe('BookingsService', () => {
         title: 'Villa Cocody',
       });
       mockPrismaService.booking.update.mockResolvedValue({});
-      mockPrismaService.payment.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.payment.findFirst.mockResolvedValue({ id: 'pay-1', status: 'SUCCESS' });
       mockNotificationsService.create.mockResolvedValue({});
 
       const result = await service.accept('booking-1', 'host-1');
@@ -345,12 +352,10 @@ describe('BookingsService', () => {
         where: { id: 'booking-1' },
         data: { status: 'CONFIRMED' },
       });
-      expect(mockPrismaService.payment.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { bookingId: 'booking-1' },
-          data: expect.objectContaining({ status: 'SUCCESS' }),
-        }),
-      );
+      // L'acceptation ne doit JAMAIS marquer elle-même le paiement comme réussi
+      expect(mockPrismaService.payment.updateMany).not.toHaveBeenCalled();
+      expect(mockPayoutsService.createPayoutForBooking).toHaveBeenCalledWith('booking-1');
+
       // Notification voyageur
       expect(mockNotificationsService.create).toHaveBeenCalledWith(
         'user-1',
@@ -365,6 +370,24 @@ describe('BookingsService', () => {
       mockPrismaService.booking.findUnique.mockResolvedValue(null);
 
       await expect(service.accept('booking-1', 'host-1')).rejects.toThrow(NotFoundException);
+    });
+
+
+    it('doit refuser si le voyageur n\'a pas encore payé (400)', async () => {
+      mockPrismaService.booking.findUnique.mockResolvedValue({
+        id: 'booking-1',
+        status: 'PENDING',
+        travelerId: 'user-1',
+        propertyId: 'prop-1',
+        traveler: { firstName: 'Moussa', lastName: 'Diallo' },
+        property: { title: 'Villa Cocody' },
+      });
+      mockPrismaService.property.findUnique.mockResolvedValue({ id: 'prop-1', hostId: 'host-1' });
+      mockPrismaService.payment.findFirst.mockResolvedValue(null);
+
+      await expect(service.accept('booking-1', 'host-1')).rejects.toThrow(BadRequestException);
+      expect(mockPrismaService.booking.update).not.toHaveBeenCalled();
+      expect(mockPayoutsService.createPayoutForBooking).not.toHaveBeenCalled();
     });
 
     it('doit rejeter si l\'utilisateur n\'est pas l\'hôte (403)', async () => {
@@ -531,38 +554,6 @@ describe('BookingsService', () => {
   // CONFIRM PAYMENT
   // ========================
 
-  describe('confirmPayment', () => {
-    it('doit confirmer le paiement et passer en CONFIRMED', async () => {
-      mockPrismaService.booking.findUnique.mockResolvedValue({
-        id: 'booking-1',
-        travelerId: 'user-1',
-      });
-      mockPrismaService.booking.update.mockResolvedValue({});
-      mockPrismaService.payment.updateMany.mockResolvedValue({ count: 1 });
-
-      const result = await service.confirmPayment('booking-1', 'user-1');
-
-      expect(result.success).toBe(true);
-      expect(mockPrismaService.booking.update).toHaveBeenCalledWith({
-        where: { id: 'booking-1' },
-        data: { status: 'CONFIRMED' },
-      });
-      expect(mockPrismaService.payment.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ status: 'SUCCESS' }),
-        }),
-      );
-    });
-
-    it('doit rejeter si ce n\'est pas le voyageur (403)', async () => {
-      mockPrismaService.booking.findUnique.mockResolvedValue({
-        id: 'booking-1',
-        travelerId: 'autre-user',
-      });
-
-      await expect(service.confirmPayment('booking-1', 'user-1')).rejects.toThrow(ForbiddenException);
-    });
-  });
 
   // ========================
   // GET COMMISSION RATE

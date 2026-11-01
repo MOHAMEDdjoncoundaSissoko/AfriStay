@@ -7,7 +7,30 @@ interface Currency {
   name: string;
   symbol: string;
   flagEmoji?: string;
+  region?: string | null;
   rateToXof: number;
+}
+
+// Ordre et libellés des régions affichées dans les sélecteurs de devise
+export const CURRENCY_REGIONS: { key: string; label: string }[] = [
+  { key: 'AFRIQUE_OUEST', label: "Afrique de l'Ouest" },
+  { key: 'AFRIQUE_CENTRALE', label: 'Afrique centrale' },
+  { key: 'AFRIQUE_NORD', label: 'Afrique du Nord' },
+  { key: 'AFRIQUE_EST', label: "Afrique de l'Est" },
+  { key: 'AFRIQUE_AUSTRALE', label: 'Afrique australe' },
+  { key: 'OCEAN_INDIEN', label: 'Océan Indien' },
+  { key: 'INTERNATIONAL', label: 'International' },
+];
+
+// Regroupe les devises par région (les devises sans région vont dans « Autres »)
+export function groupCurrenciesByRegion<T extends { region?: string | null }>(list: T[]) {
+  const groups = CURRENCY_REGIONS.map((r) => ({
+    ...r,
+    currencies: list.filter((c) => c.region === r.key),
+  }));
+  const others = list.filter((c) => !CURRENCY_REGIONS.some((r) => r.key === c.region));
+  if (others.length > 0) groups.push({ key: 'AUTRES', label: 'Autres', currencies: others });
+  return groups.filter((g) => g.currencies.length > 0);
 }
 
 interface CurrencyContextType {

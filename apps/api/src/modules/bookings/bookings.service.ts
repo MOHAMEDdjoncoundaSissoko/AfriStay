@@ -219,24 +219,6 @@ export class BookingsService {
     return booking;
   }
 
-  async confirmPayment(bookingId: string, userId: string) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
-    if (!booking) throw new NotFoundException('Réservation non trouvée');
-    if (booking.travelerId !== userId) throw new ForbiddenException('Non autorisé');
-
-    await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: { status: 'CONFIRMED' },
-    });
-
-    await this.prisma.payment.updateMany({
-      where: { bookingId },
-      data: { status: 'SUCCESS', paidAt: new Date() },
-    });
-
-    return { success: true, message: 'Paiement confirmé' };
-  }
-
   async accept(bookingId: string, hostId: string) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
@@ -251,18 +233,22 @@ export class BookingsService {
     if (property?.hostId !== hostId) throw new ForbiddenException('Seul l\'hôte peut valider');
     if (booking.status !== 'PENDING') throw new BadRequestException('Cette réservation n\'est plus en attente');
 
+    // L'hôte ne peut accepter que si le voyageur a VRAIMENT payé.
+    // Seul le webhook du prestataire de paiement peut passer un paiement en SUCCESS.
+    const paidPayment = await this.prisma.payment.findFirst({
+      where: { bookingId, status: 'SUCCESS' },
+    });
+    if (!paidPayment) {
+      throw new BadRequestException('Le paiement de cette réservation n\'a pas encore été reçu');
+    }
+
     await this.prisma.booking.update({
       where: { id: bookingId },
       data: { status: 'CONFIRMED' },
     });
 
-    await this.prisma.payment.updateMany({
-      where: { bookingId },
-      data: { status: 'SUCCESS', paidAt: new Date() },
-    });
-
-      // Créer le payout pour l'hôte
-      this.payoutsService.createPayoutForBooking(bookingId);
+    // Créer le payout pour l'hôte
+    await this.payoutsService.createPayoutForBooking(bookingId);
 
     // Notification voyageur
     await this.notificationsService.create(

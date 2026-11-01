@@ -6,7 +6,7 @@ import { useTheme } from 'next-themes';
 import { apiRequest } from '@/lib/api/client';
 import { VerifiedBadge } from '@/components/shared/verified-badge';
 import NotificationBell from '@/components/shared/notification-bell';
-import { useCurrency } from '@/lib/currency/currency-context';
+import { useCurrency, groupCurrenciesByRegion } from '@/lib/currency/currency-context';
 
 export function Navbar() {
   const { theme, setTheme } = useTheme();
@@ -85,10 +85,14 @@ export function Navbar() {
               onChange={(e) => setSelectedCurrency(e.target.value)}
               className="bg-transparent border border-[var(--border)] rounded-lg px-2 py-1.5 text-xs outline-none"
             >
-              {currencies.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.flagEmoji} {c.code}
-                </option>
+              {groupCurrenciesByRegion(currencies).map((group) => (
+                <optgroup key={group.key} label={group.label}>
+                  {group.currencies.map((c) => (
+                    <option key={c.code} value={c.code} title={c.name}>
+                      {c.flagEmoji} {c.code}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           )}
