@@ -21,7 +21,9 @@ export default function AdminContactsPage() {
   const [loadingReply, setLoadingReply] = useState(false);
 
   useEffect(() => {
-    apiRequest('/api/contact').then(setContacts).catch(() => {});
+    // Route réservée aux admins : on envoie le token
+    const token = localStorage.getItem('afristay_token') || undefined;
+    apiRequest<Contact[]>('/api/contact', { token }).then(setContacts).catch(() => {});
   }, []);
 
   async function handleReply() {
@@ -30,6 +32,7 @@ export default function AdminContactsPage() {
     try {
       await apiRequest(`/api/contact/${selected.id}/reply`, {
         method: 'PATCH',
+        token: localStorage.getItem('afristay_token') || undefined,
         body: { reply: replyText },
       });
       setContacts(contacts.map(c => c.id === selected.id ? { ...c, reply: replyText } : c));

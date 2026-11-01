@@ -30,34 +30,29 @@ describe('ContactService', () => {
   // ========================
 
   describe('create', () => {
-    it('doit créer un message de contact avec les champs du DTO', async () => {
-      const dto = {
-        firstName: 'Moussa',
-        lastName: 'Diallo',
-        email: 'moussa@test.com',
-        subject: 'Problème de réservation',
-        message: 'Je n\'arrive pas à réserver',
-      };
+    const dto = {
+      firstName: 'Moussa',
+      lastName: 'Diallo',
+      email: 'moussa@test.com',
+      subject: 'Problème de réservation',
+      message: 'Je n\'arrive pas à réserver',
+    };
+
+    it('doit créer un message de visiteur (userId null)', async () => {
       mockPrismaService.contact.create.mockResolvedValue({ id: 'contact-1', ...dto });
 
-      const result = await service.create(dto);
+      const result = await service.create(dto, null);
 
       expect(result.firstName).toBe('Moussa');
-      expect(mockPrismaService.contact.create).toHaveBeenCalledWith({ data: dto });
+      expect(mockPrismaService.contact.create).toHaveBeenCalledWith({
+        data: { ...dto, userId: null },
+      });
     });
 
-    it('doit créer avec userId si fourni', async () => {
-      const dto = {
-        firstName: 'Moussa',
-        lastName: 'Diallo',
-        email: 'moussa@test.com',
-        subject: 'Question',
-        message: 'Hello',
-        userId: 'user-1',
-      };
+    it('doit rattacher le message au userId venant du token', async () => {
       mockPrismaService.contact.create.mockResolvedValue({ id: 'contact-2' });
 
-      await service.create(dto);
+      await service.create(dto, 'user-1');
 
       const call = mockPrismaService.contact.create.mock.calls[0][0];
       expect(call.data.userId).toBe('user-1');
@@ -65,7 +60,7 @@ describe('ContactService', () => {
   });
 
   // ========================
-  // FIND ALL
+  // FIND ALL (admin)
   // ========================
 
   describe('findAll', () => {
@@ -82,16 +77,23 @@ describe('ContactService', () => {
       expect(call.where).toBeUndefined();
       expect(call.orderBy).toEqual({ createdAt: 'desc' });
     });
+  });
 
-    it('doit filtrer par userId si fourni', async () => {
+  // ========================
+  // FIND BY USER (mes demandes)
+  // ========================
+
+  describe('findByUser', () => {
+    it('doit filtrer sur le userId donné', async () => {
       mockPrismaService.contact.findMany.mockResolvedValue([
         { id: 'contact-1', userId: 'user-1' },
       ]);
 
-      await service.findAll('user-1');
+      await service.findByUser('user-1');
 
       const call = mockPrismaService.contact.findMany.mock.calls[0][0];
       expect(call.where).toEqual({ userId: 'user-1' });
+      expect(call.orderBy).toEqual({ createdAt: 'desc' });
     });
   });
 

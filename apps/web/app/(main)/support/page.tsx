@@ -21,11 +21,12 @@ export default function SupportPage() {
   useEffect(() => {
     async function fetchTickets() {
       try {
-        const userStr = localStorage.getItem('afristay_user');
-        const userId = userStr ? JSON.parse(userStr).id : null;
-        
-        if (userId) {
-          const data = await apiRequest<Ticket[]>(`/api/contact?userId=${userId}`);
+        // On envoie le token : le serveur renvoie uniquement les demandes
+        // de l'utilisateur connecté (route /mine).
+        const token = localStorage.getItem('afristay_token');
+
+        if (token) {
+          const data = await apiRequest<Ticket[]>('/api/contact/mine', { token });
           setTickets(data);
         }
       } catch (err) {

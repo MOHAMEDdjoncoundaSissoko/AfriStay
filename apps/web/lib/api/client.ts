@@ -30,7 +30,7 @@ interface RequestOptions {
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, headers = {}, token } = options;
 
-  const res = await safeFetch(`${API_URL}${path}`, {
+    let res = await safeFetch(`${API_URL}${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',

@@ -26,12 +26,16 @@ export default function ContactPage() {
       email: parsedUser?.email || form.get('email') || '',
       subject: form.get('subject') || '',
       message: form.get('message') || '',
-      userId: parsedUser?.id || null,
     };
+
+    // Si l'utilisateur est connecté, on envoie son token :
+    // le serveur saura lui-même à quel compte rattacher le message.
+    const token = localStorage.getItem('afristay_token');
 
     try {
       await apiRequest('/api/contact', {
         method: 'POST',
+        token: token || undefined,
         body: payload,
       });
       setSent(true);

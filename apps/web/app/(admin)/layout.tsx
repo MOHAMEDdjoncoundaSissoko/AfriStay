@@ -9,6 +9,7 @@ const navItems = [
   { label: 'Logements', href: '/admin/properties', icon: 'fas fa-building' },
   { label: 'Vérifications', href: '/admin/verifications', icon: 'fas fa-id-card' },
   { label: 'Versements', href: '/admin/payouts', icon: 'fas fa-money-bill-transfer' },
+  { label: 'Messages', href: '/admin/contacts', icon: 'fas fa-envelope' },   // ← AJOUTER
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -6,14 +6,20 @@ import { CreateContactDto } from './dto/create-contact.dto';
 export class ContactService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateContactDto) {
-    return this.prisma.contact.create({ data: dto });
+  async create(dto: CreateContactDto, userId: string | null) {
+    return this.prisma.contact.create({ data: { ...dto, userId } });
   }
 
-  async findAll(userId?: string) {
-    return this.prisma.contact.findMany({ 
-      where: userId ? { userId } : undefined, 
-      orderBy: { createdAt: 'desc' } 
+  async findAll() {
+    return this.prisma.contact.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findByUser(userId: string) {
+    return this.prisma.contact.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
